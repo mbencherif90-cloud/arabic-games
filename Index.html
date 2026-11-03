@@ -1,0 +1,658 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Rihla Letter Quest</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Noto+Naskh+Arabic:wght@500;700&display=swap">
+<style>
+/* Layout: one-screen game shell — menu / level path, canvas stage, full-screen question overlay, practice room. Single dusk-desert look by choice. */
+:root{
+  --deep:#0b1c29; --night:#10283a; --panel:#15344a; --panel-2:#1c4560;
+  --sand:#e8bf72; --sand-dk:#b9873f; --coral:#ff6f59; --mint:#7fe0b8; --gold:#ffd35c;
+  --ink:#f6efe2; --muted:#a9c0c8; --line:#2b5670;
+  --ui:'Baloo 2','Trebuchet MS',system-ui,sans-serif;
+  --ar:'Noto Naskh Arabic','Geeza Pro','Traditional Arabic','Arabic Typesetting',serif;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--deep);color:var(--ink);font-family:var(--ui);font-size:16px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto;padding-block:18px 28px}
+.ar{font-family:var(--ar)}
+
+/* ---------- Menu ---------- */
+.hero{display:grid;gap:6px;justify-items:start;padding-block:14px 8px}
+.hero .arabic{font-family:var(--ar);font-size:clamp(2.6rem,8vw,4.4rem);line-height:1.2;color:var(--gold);direction:rtl}
+.hero h1{margin:0;font-size:clamp(1.6rem,4.5vw,2.4rem);font-weight:800;letter-spacing:.01em;line-height:1.1}
+.hero p{margin:0;color:var(--muted);max-width:60ch}
+.cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px}
+.btn{border:0;border-radius:14px;padding:12px 22px;font-weight:700;font-size:1.05rem;background:var(--panel-2);box-shadow:0 4px 0 #0a1824}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 #0a1824}
+.btn.primary{background:var(--gold);color:#3a2606;box-shadow:0 4px 0 #b8901f}
+.btn.mint{background:var(--mint);color:#0d3a2a;box-shadow:0 4px 0 #3e9b78}
+.btn.ghost{background:transparent;box-shadow:none;border:2px solid var(--line);padding:8px 16px;font-size:.95rem}
+
+.section-label{margin:30px 0 10px;font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.path{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.stop{text-align:left;border:2px solid var(--line);background:var(--night);border-radius:16px;padding:14px;display:grid;gap:4px;min-width:0}
+.stop:hover:not([disabled]){border-color:var(--gold)}
+.stop[disabled]{opacity:.45;cursor:not-allowed}
+.stop .num{font-size:.8rem;color:var(--muted);font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.stop .nm{font-size:1.15rem;font-weight:800;line-height:1.15}
+.stop .nm-ar{font-family:var(--ar);color:var(--sand);direction:rtl;font-size:1.05rem}
+.stop .fc{color:var(--muted);font-size:.9rem}
+.stop .meta{display:flex;justify-content:space-between;align-items:center;margin-top:4px;font-size:.85rem}
+.stars{color:var(--gold);letter-spacing:2px}
+.stars .off{color:#3b5a6e}
+.lock{color:var(--muted)}
+
+.how{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.how div{background:var(--night);border-radius:14px;padding:12px 14px;color:var(--muted);font-size:.95rem}
+.how b{color:var(--ink);display:block;font-size:1rem}
+kbd{font-family:var(--ui);background:var(--panel-2);border-radius:6px;padding:0 6px;font-size:.85rem;color:var(--ink)}
+
+/* ---------- Game ---------- */
+#game .bar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+#game .bar .ttl{font-weight:800;font-size:1.05rem}
+#game .bar .ttl span{color:var(--muted);font-weight:600}
+.stage{position:relative;width:100%;max-width:calc((100dvh - 190px) * 16 / 9);min-width:min(100%,320px);aspect-ratio:16/9;margin:0 auto;border-radius:18px;overflow:hidden;background:var(--night);box-shadow:0 0 0 2px var(--line)}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+.pad{display:none;justify-content:space-between;gap:12px;margin-top:12px;user-select:none;-webkit-user-select:none}
+.pad .grp{display:flex;gap:12px}
+.pad button{width:72px;height:64px;border-radius:16px;border:0;background:var(--panel-2);font-size:1.6rem;font-weight:800;touch-action:none;box-shadow:0 4px 0 #0a1824}
+.pad button.on{background:var(--gold);color:#3a2606}
+.pad .jump{width:110px}
+@media (pointer:coarse){.pad{display:flex}}
+
+/* ---------- Overlay / question card ---------- */
+.overlay{position:fixed;inset:0;z-index:20;background:rgba(5,14,22,.78);display:grid;place-items:center;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow:auto}
+.card{width:min(620px,100%);background:var(--panel);border-radius:22px;padding:20px;box-shadow:0 0 0 2px var(--line),0 20px 60px rgba(0,0,0,.45);display:grid;gap:12px}
+.q-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.q-tag{font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:var(--coral)}
+.q-tag.practice{color:var(--mint)}
+.hear{border:2px solid var(--line);background:transparent;border-radius:999px;padding:4px 14px;font-weight:700;font-size:.9rem}
+.timer{height:8px;border-radius:99px;background:var(--night);overflow:hidden}
+.timer i{display:block;height:100%;width:100%;background:var(--gold);transform-origin:left;transition:background .3s}
+.q-prompt{margin:0;font-size:1.3rem;font-weight:700;line-height:1.3;text-wrap:balance}
+.q-prompt .ai{font-family:var(--ar);font-size:1.5em;color:var(--gold);padding:0 .15em}
+.q-sub{margin:-6px 0 0;color:var(--muted)}
+.q-big{font-family:var(--ar);font-size:clamp(4rem,16vw,6.5rem);line-height:1.5;text-align:center;color:var(--gold);background:var(--night);border-radius:16px;padding:4px 10px}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.opts.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.opt{display:flex;align-items:center;gap:10px;border:2px solid var(--line);background:var(--night);border-radius:14px;padding:10px 12px;min-height:64px;text-align:left;min-width:0}
+.opt .k{flex:none;width:24px;height:24px;border-radius:7px;background:var(--panel-2);font-size:.8rem;font-weight:800;display:grid;place-items:center;color:var(--muted)}
+.opt .t{font-size:1.35rem;font-weight:700;flex:1;text-align:center;overflow-wrap:anywhere}
+.opts.ar-opts .opt .t{font-family:var(--ar);font-size:2.2rem;line-height:1.5;font-weight:700}
+.opt:hover:not([disabled]){border-color:var(--gold)}
+.opt.right{border-color:var(--mint);background:#174a3c}
+.opt.wrong{border-color:var(--coral);background:#4a2228}
+.opt[disabled]{cursor:default}
+.fb{border-radius:14px;padding:12px 14px;display:grid;gap:8px}
+.fb.good{background:#174a3c}
+.fb.bad{background:#4a2228}
+.fb h3{margin:0;font-size:1.15rem}
+.fb p{margin:0}
+.fb .ai{font-family:var(--ar);font-size:1.35em;color:var(--gold)}
+.fb .row{display:flex;justify-content:flex-end}
+.end{text-align:center;justify-items:center}
+.end h2{margin:0;font-size:1.8rem;line-height:1.1}
+.end .big-stars{font-size:2.6rem;color:var(--gold);letter-spacing:6px}
+.end .big-stars .off{color:#3b5a6e}
+.end p{margin:0;color:var(--muted)}
+.end .cta{justify-content:center}
+
+/* ---------- Practice room ---------- */
+.prac-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.prac-head h2{margin:0;font-size:1.6rem}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.chip{border:2px solid var(--line);background:var(--night);border-radius:999px;padding:6px 14px;font-weight:700;font-size:.95rem}
+.chip[aria-pressed="true"]{background:var(--mint);color:#0d3a2a;border-color:var(--mint)}
+.prac-grid{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:16px;align-items:start}
+@media (max-width:760px){.prac-grid{grid-template-columns:minmax(0,1fr)}}
+.side{display:grid;gap:12px}
+.box{background:var(--night);border-radius:16px;padding:14px}
+.box h4{margin:0 0 6px;font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.stat{display:flex;justify-content:space-between;font-variant-numeric:tabular-nums;padding:2px 0}
+.stat b{font-size:1.1rem}
+.tip{color:var(--muted);font-size:.95rem}
+.tip .ai{font-family:var(--ar);color:var(--gold);font-size:1.3em}
+.chart{display:grid;grid-template-columns:auto repeat(3,1fr);gap:4px;text-align:center;font-size:.85rem}
+.chart .h{color:var(--muted);font-weight:700}
+.chart .c{font-family:var(--ar);font-size:1.4rem;background:var(--panel);border-radius:8px;line-height:1.7}
+.chart .l{color:var(--muted);font-size:.75rem;margin-top:-4px}
+.prac-card{box-shadow:0 0 0 2px var(--line)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<!-- ================= MENU ================= -->
+<section id="menu" class="wrap">
+  <div class="hero">
+    <div class="arabic" lang="ar">رحلة الحروف</div>
+    <h1>Rihla Letter Quest</h1>
+    <p>Scramblers have mixed up the sounds of the desert. Run, jump and read Arabic sounds to defeat them and open each oasis gate.</p>
+    <div class="cta">
+      <button class="btn primary" id="btnPlay" type="button">Start the adventure</button>
+      <button class="btn mint" id="btnPractice" type="button">Practice room</button>
+    </div>
+  </div>
+
+  <div class="section-label">The journey · 5 levels, getting harder</div>
+  <div class="path" id="path"></div>
+
+  <div class="section-label">How to play</div>
+  <div class="how">
+    <div><b>Move and jump</b>Arrow keys or <kbd>A</kbd> <kbd>D</kbd> to move, <kbd>Space</kbd> or <kbd>↑</kbd> to jump. On a tablet, use the buttons under the game.</div>
+    <div><b>Touch a Scrambler</b>You get an Arabic phonics question. Answer correctly to defeat it. A wrong answer costs a heart. Press <kbd>1</kbd>–<kbd>4</kbd> to answer.</div>
+    <div><b>Open the gate</b>Defeat every Scrambler, then reach the gate. Lose no hearts for 3 stars.</div>
+    <div><b>Stuck?</b>The practice room has the same questions with no enemies, no timer and no hearts to lose.</div>
+  </div>
+</section>
+
+<!-- ================= GAME ================= -->
+<section id="game" class="wrap" hidden>
+  <div class="bar">
+    <button class="btn ghost" id="btnMap" type="button">← Map</button>
+    <div class="ttl" id="gameTitle"></div>
+    <button class="btn ghost" id="btnRestart" type="button">Restart level</button>
+  </div>
+  <div class="stage"><canvas id="cv" width="960" height="540" aria-label="Platform game"></canvas></div>
+  <div class="pad" aria-hidden="true">
+    <div class="grp"><button type="button" data-k="left">◀</button><button type="button" data-k="right">▶</button></div>
+    <button type="button" class="jump" data-k="jump">Jump</button>
+  </div>
+</section>
+
+<!-- ================= PRACTICE ================= -->
+<section id="practice" class="wrap" hidden>
+  <div class="prac-head">
+    <h2>Practice room</h2>
+    <button class="btn ghost" id="btnPracBack" type="button">← Back to the journey</button>
+  </div>
+  <div class="chips" id="chips" role="group" aria-label="Choose a topic"></div>
+  <div class="prac-grid">
+    <div class="card prac-card" id="pracCard"></div>
+    <div class="side">
+      <div class="box"><h4>This session</h4>
+        <div class="stat"><span>Correct</span><b id="sCorrect">0 / 0</b></div>
+        <div class="stat"><span>Streak</span><b id="sStreak">0</b></div>
+        <div class="stat"><span>Best streak</span><b id="sBest">0</b></div>
+      </div>
+      <div class="box"><h4>Tip</h4><div class="tip" id="pracTip"></div></div>
+      <div class="box"><h4>Vowel chart</h4>
+        <div class="chart" id="chart"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="overlay" id="overlay" hidden><div class="card" id="ovCard"></div></div>
+
+<script>
+(() => {
+/* =================== DATA =================== */
+const FATHA='َ', DAMMA='ُ', KASRA='ِ', TAT='ـ';
+const LETTERS=[
+ {ar:'ب',s:'b',hint:'b as in bat',join:1},{ar:'ت',s:'t',hint:'t as in tap',join:1},
+ {ar:'ث',s:'th',hint:'th as in think',join:1},{ar:'ج',s:'j',hint:'j as in jam',join:1},
+ {ar:'ح',s:'ḥ',hint:'a breathy h from deep in the throat',join:1,hard:1},
+ {ar:'خ',s:'kh',hint:'a scratchy kh, like clearing your throat',join:1,hard:1},
+ {ar:'د',s:'d',hint:'d as in dog',join:0},{ar:'ذ',s:'dh',hint:'th as in this',join:0,hard:1},
+ {ar:'ر',s:'r',hint:'a rolled r',join:0},{ar:'ز',s:'z',hint:'z as in zoo',join:0},
+ {ar:'س',s:'s',hint:'s as in sun',join:1},{ar:'ش',s:'sh',hint:'sh as in ship',join:1},
+ {ar:'ص',s:'ṣ',hint:'a heavy s, mouth open wide',join:1,hard:1},
+ {ar:'ط',s:'ṭ',hint:'a heavy t',join:1,hard:1},
+ {ar:'ع',s:'ʿ',hint:"'ayn, squeezed from the throat",join:1,hard:1},
+ {ar:'غ',s:'gh',hint:'a gargling gh',join:1,hard:1},
+ {ar:'ف',s:'f',hint:'f as in fish',join:1},
+ {ar:'ق',s:'q',hint:'a deep k from the back of the throat',join:1,hard:1},
+ {ar:'ك',s:'k',hint:'k as in kite',join:1},{ar:'ل',s:'l',hint:'l as in lamp',join:1},
+ {ar:'م',s:'m',hint:'m as in moon',join:1},{ar:'ن',s:'n',hint:'n as in net',join:1},
+ {ar:'ه',s:'h',hint:'h as in hat',join:1},{ar:'و',s:'w',hint:'w as in wet',join:0},
+ {ar:'ي',s:'y',hint:'y as in yes',join:1}
+];
+const EASY=LETTERS.filter(l=>!l.hard);
+const HARD=LETTERS.filter(l=>l.hard);
+const VOWEL_LETTERS=EASY.filter(l=>!['و','ي'].includes(l.ar));
+const VOWELS=[
+ {m:FATHA,name:'fatha',s:'a',desc:'a small line above'},
+ {m:DAMMA,name:'damma',s:'u',desc:'a small curl above'},
+ {m:KASRA,name:'kasra',s:'i',desc:'a small line below'}
+];
+const LONG=[
+ {s:'aa',v:0,add:'ا',name:'alif'},
+ {s:'oo',v:1,add:'و',name:'waw'},
+ {s:'ee',v:2,add:'ي',name:'yaa'}
+];
+const WORDS=[
+ {ar:'بَاب',tr:'baab',en:'door'},{ar:'نُور',tr:'noor',en:'light'},{ar:'فِيل',tr:'feel',en:'elephant'},
+ {ar:'تِين',tr:'teen',en:'figs'},{ar:'حُوت',tr:'ḥoot',en:'whale'},{ar:'تُوت',tr:'toot',en:'berries'},
+ {ar:'دَار',tr:'daar',en:'house'},{ar:'نَار',tr:'naar',en:'fire'},{ar:'رِيش',tr:'reesh',en:'feathers'},
+ {ar:'كِيس',tr:'kees',en:'bag'},{ar:'سُوق',tr:'sooq',en:'market'},{ar:'جَار',tr:'jaar',en:'neighbour'},
+ {ar:'فُول',tr:'fool',en:'beans'},{ar:'سُور',tr:'soor',en:'wall'},{ar:'طِين',tr:'ṭeen',en:'mud'}
+];
+
+/* =================== HELPERS =================== */
+const $=s=>document.querySelector(s);
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const others=(arr,n,ex)=>shuffle(arr.filter(x=>!ex.includes(x))).slice(0,n);
+const ai=t=>`<span class="ai" lang="ar" dir="rtl">${t}</span>`;
+const q_=(o)=>{const opts=shuffle([o.answer,...o.wrong.slice(0,o.n-1)]);return {...o,options:opts,correct:opts.indexOf(o.answer)};};
+
+/* =================== QUESTION GENERATORS =================== */
+function qSoundToLetter(pool,n){
+  const L=pick(pool);
+  return q_({prompt:`Which letter makes the sound “${L.s}”?`,sub:L.hint,answer:L.ar,wrong:others(pool,3,[L]).map(x=>x.ar),n,optAr:1,
+    explain:`${ai(L.ar)} makes “${L.s}”: ${L.hint}.`,speak:L.ar+FATHA,key:'s2l'+L.ar});
+}
+function qLetterToSound(pool,n){
+  const L=pick(pool);
+  return q_({prompt:'What sound does this letter make?',big:L.ar,answer:L.s,wrong:others(pool,3,[L]).map(x=>x.s),n,
+    explain:`${ai(L.ar)} makes “${L.s}”: ${L.hint}.`,speak:L.ar+FATHA,key:'l2s'+L.ar});
+}
+function qShortVowel(n){
+  const L=pick(VOWEL_LETTERS), V=pick(VOWELS), txt=L.ar+V.m;
+  const explain=`The ${V.name} (${V.desc}) makes a short “${V.s}”. ${ai(txt)} = “${L.s}${V.s}”.`;
+  if(Math.random()<.5){
+    const wrong=VOWELS.filter(v=>v!==V).map(v=>L.s+v.s); wrong.push(L.s+V.s+V.s);
+    return q_({prompt:'Read it. Which sound is it?',big:txt,answer:L.s+V.s,wrong,n,explain,speak:txt,key:'sv'+txt});
+  }
+  const wrong=VOWELS.filter(v=>v!==V).map(v=>L.ar+v.m); wrong.push(pick(VOWEL_LETTERS.filter(x=>x!==L)).ar+V.m);
+  return q_({prompt:`Which one says “${L.s}${V.s}”?`,answer:txt,wrong,n,optAr:1,explain,speak:txt,key:'sv2'+txt});
+}
+function qLongVowel(n){
+  const L=pick(VOWEL_LETTERS), LV=pick(LONG), V=VOWELS[LV.v];
+  const long=L.ar+V.m+LV.add, short=L.ar+V.m;
+  const explain=`${LV.name.charAt(0).toUpperCase()+LV.name.slice(1)} ${ai(LV.add)} after a ${V.name} stretches the sound. ${ai(short)} “${L.s}${V.s}” becomes ${ai(long)} “${L.s}${LV.s}”.`;
+  if(Math.random()<.5){
+    const wrong=LONG.filter(x=>x!==LV).map(x=>L.s+x.s); wrong.unshift(L.s+V.s);
+    return q_({prompt:'Read it. Which sound is it?',big:long,answer:L.s+LV.s,wrong,n,explain,speak:long,key:'lv'+long});
+  }
+  const wrong=[short,...LONG.filter(x=>x!==LV).map(x=>L.ar+VOWELS[x.v].m+x.add)];
+  return q_({prompt:`Which one says the long sound “${L.s}${LV.s}”?`,answer:long,wrong,n,optAr:1,explain,speak:long,key:'lv2'+long});
+}
+function forms(L){return {start:L.ar+TAT,middle:TAT+L.ar+TAT,end:TAT+L.ar,alone:L.ar};}
+function qLetterForm(pool,n){
+  const L=pick(pool.filter(l=>l.join)), F=forms(L), pos=pick(['start','middle','end']);
+  const explain=`${ai(L.ar)} changes shape. Start ${ai(F.start)} · middle ${ai(F.middle)} · end ${ai(F.end)}.`;
+  if(Math.random()<.55){
+    const wrong=shuffle(['start','middle','end','alone'].filter(p=>p!==pos)).map(p=>F[p]);
+    return q_({prompt:`Which shape does ${ai(L.ar)} take at the ${pos.toUpperCase()} of a word?`,answer:F[pos],wrong,n,optAr:1,explain,key:'lf'+L.ar+pos});
+  }
+  const names={start:'Start',middle:'Middle',end:'End'};
+  const wrong=Object.keys(names).filter(p=>p!==pos).map(p=>names[p]); wrong.push('On its own');
+  return q_({prompt:'Where in a word does this shape go?',big:F[pos],answer:names[pos],wrong,n:Math.min(n,4),explain,key:'lf2'+L.ar+pos});
+}
+function qReadWord(n){
+  const W=pick(WORDS), wrongW=others(WORDS,3,[W]);
+  const explain=`${ai(W.ar)} reads “${W.tr}” and means ${W.en}.`;
+  if(Math.random()<.5) return q_({prompt:`Which word says “${W.tr}” (${W.en})?`,answer:W.ar,wrong:wrongW.map(w=>w.ar),n,optAr:1,explain,speak:W.ar,key:'rw'+W.ar});
+  return q_({prompt:'How do you read this word?',big:W.ar,answer:W.tr,wrong:wrongW.map(w=>w.tr),n,explain,speak:W.ar,key:'rw2'+W.ar});
+}
+const soundQ=(pool,n)=>(Math.random()<.5?qSoundToLetter:qLetterToSound)(pool,n);
+
+/* =================== LEVELS =================== */
+const LEVELS=[
+ {name:'Sound Sands',nmAr:'رمال الأصوات',focus:'Letter sounds',
+  gen:()=>soundQ(EASY,3),enemies:3,speed:.8,timer:0,gaps:[50,80],hop:0,sky:['#173a55','#3a6c7f']},
+ {name:'Vowel Valley',nmAr:'وادي الحركات',focus:'Short vowels: fatha, damma, kasra',
+  gen:()=>Math.random()<.8?qShortVowel(3):soundQ(EASY,3),enemies:4,speed:1.05,timer:0,gaps:[60,100],hop:0,sky:['#1d3557','#55708f']},
+ {name:'Long Road',nmAr:'الطريق الطويل',focus:'Long vowels with ا و ي',
+  gen:()=>Math.random()<.75?qLongVowel(4):qShortVowel(4),enemies:5,speed:1.3,timer:20,gaps:[70,115],hop:0,sky:['#2a2f5a','#7a6585']},
+ {name:'Shape Cliffs',nmAr:'منحدرات الأشكال',focus:'Letter shapes and tricky sounds',
+  gen:()=>Math.random()<.6?qLetterForm(LETTERS,4):soundQ(LETTERS,4),enemies:6,speed:1.55,timer:15,gaps:[80,125],hop:.3,sky:['#33264d','#9a6a73']},
+ {name:'Reading Oasis',nmAr:'واحة القراءة',focus:'Reading words, plus everything so far',
+  gen:()=>{const r=Math.random();return r<.45?qReadWord(4):r<.65?qLongVowel(4):r<.8?qLetterForm(LETTERS,4):soundQ(LETTERS,4);},
+  enemies:7,speed:1.85,timer:12,gaps:[85,135],hop:.55,sky:['#2b1d3f','#c07a5e']}
+];
+const TOPICS=[
+ {id:'sounds',label:'Letter sounds',gen:()=>soundQ(EASY,4),tip:`Every letter has one main sound. Say it with a short “a”: ${ai('بَ')} “ba”, ${ai('مَ')} “ma”.`},
+ {id:'tricky',label:'Tricky sounds',gen:()=>soundQ(HARD.concat(pick([EASY])).slice(0,12),4),tip:`These sounds have no English letter. Feel where they come from: ${ai('ح')} and ${ai('ع')} from the throat, ${ai('ق')} from the very back.`},
+ {id:'short',label:'Short vowels',gen:()=>qShortVowel(4),tip:`Fatha above ${ai('بَ')} = “ba”. Damma above ${ai('بُ')} = “bu”. Kasra below ${ai('بِ')} = “bi”.`},
+ {id:'long',label:'Long vowels',gen:()=>qLongVowel(4),tip:`Add a long-vowel letter to stretch the sound. ${ai('بَا')} “baa”, ${ai('بُو')} “boo”, ${ai('بِي')} “bee”.`},
+ {id:'forms',label:'Letter shapes',gen:()=>qLetterForm(LETTERS,4),tip:`Most letters join to the next one and change shape: ${ai('بـ')} start, ${ai('ـبـ')} middle, ${ai('ـب')} end. ${ai('ا د ذ ر ز و')} never join to the left.`},
+ {id:'words',label:'Reading words',gen:()=>qReadWord(4),tip:`Read sound by sound, right to left: ${ai('بَ')} + ${ai('ا')} + ${ai('ب')} = ${ai('بَاب')} “baab”.`},
+ {id:'mixed',label:'Mixed',gen:()=>pick(LEVELS).gen(),tip:'A bit of everything from the whole journey. Good warm-up before Reading Oasis.'}
+];
+
+/* =================== STORAGE =================== */
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
+let progress=store.get('rihla-progress',{unlocked:1,stars:[0,0,0,0,0]});
+
+/* =================== AUDIO =================== */
+let AC=null;
+function tone(f,d=.12,type='square',vol=.06,slide=0){
+  try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();
+  o.type=type;o.frequency.value=f;if(slide)o.frequency.exponentialRampToValueAtTime(f*slide,AC.currentTime+d);
+  g.gain.value=vol;g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+d);o.connect(g).connect(AC.destination);o.start();o.stop(AC.currentTime+d);}catch(e){}
+}
+const sfx={jump:()=>tone(420,.14,'square',.04,1.8),coin:()=>{tone(880,.08,'triangle',.07);setTimeout(()=>tone(1320,.1,'triangle',.07),70);},
+  good:()=>{[523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.14,'triangle',.08),i*80));},
+  bad:()=>tone(220,.35,'sawtooth',.05,.5),hit:()=>tone(160,.2,'square',.06,.6),win:()=>{[523,659,784,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.18,'triangle',.08),i*110));}};
+let arVoice=null;
+function loadVoices(){try{const vs=speechSynthesis.getVoices();arVoice=vs.find(v=>(v.lang||'').toLowerCase().startsWith('ar'))||null;}catch(e){}}
+try{loadVoices();speechSynthesis.onvoiceschanged=loadVoices;}catch(e){}
+function speak(t){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang=arVoice?arVoice.lang:'ar-SA';if(arVoice)u.voice=arVoice;u.rate=.75;speechSynthesis.speak(u);}catch(e){}}
+
+/* =================== SCREENS =================== */
+let screen='menu';
+function show(id){screen=id;['menu','game','practice'].forEach(s=>$('#'+s).hidden=s!==id);window.scrollTo(0,0);}
+function starStr(n){return [0,1,2].map(i=>i<n?'★':'<span class="off">★</span>').join('');}
+function renderPath(){
+  $('#path').innerHTML=LEVELS.map((L,i)=>{const locked=i+1>progress.unlocked;
+    return `<button class="stop" type="button" data-l="${i}" ${locked?'disabled':''}>
+      <span class="num">Level ${i+1}</span><span class="nm">${L.name}</span><span class="nm-ar" lang="ar">${L.nmAr}</span>
+      <span class="fc">${L.focus}</span>
+      <span class="meta">${locked?'<span class="lock">Locked</span>':`<span class="stars">${starStr(progress.stars[i]||0)}</span>`}
+      <span class="lock">${L.timer?L.timer+'s timer':'No timer'}</span></span></button>`;}).join('');
+}
+$('#path').addEventListener('click',e=>{const b=e.target.closest('.stop');if(b&&!b.disabled)startLevel(+b.dataset.l);});
+$('#btnPlay').onclick=()=>startLevel(Math.min(progress.unlocked,LEVELS.length)-1);
+$('#btnPractice').onclick=()=>openPractice();
+$('#btnPracBack').onclick=()=>{renderPath();show('menu');};
+$('#btnMap').onclick=()=>{stopGame();renderPath();show('menu');};
+$('#btnRestart').onclick=()=>startLevel(G.li);
+
+/* =================== QUESTION CARD =================== */
+let activeQ=null; // {answer(i), cont()}
+function renderQ(root,q,{timer=0,practice=false,onAnswer,onContinue,contLabel}){
+  const three=q.options.length===3;
+  root.innerHTML=`<div class="q-top"><span class="q-tag ${practice?'practice':''}">${practice?'Practice':'Scrambler challenge'}</span>
+    ${q.speak&&'speechSynthesis' in window?'<button class="hear" type="button">Hear it</button>':''}</div>
+    ${timer?'<div class="timer"><i></i></div>':''}
+    <p class="q-prompt">${q.prompt}</p>${q.sub?`<p class="q-sub">${q.sub}</p>`:''}
+    ${q.big?`<div class="q-big" lang="ar" dir="rtl">${q.big}</div>`:''}
+    <div class="opts ${three?'three':''} ${q.optAr?'ar-opts':''}">${q.options.map((o,i)=>`<button type="button" class="opt" data-i="${i}"><span class="k">${i+1}</span><span class="t" ${q.optAr?'lang="ar" dir="rtl"':''}>${o}</span></button>`).join('')}</div>
+    <div class="fb" hidden></div>`;
+  const hear=root.querySelector('.hear'); if(hear) hear.onclick=()=>speak(q.speak);
+  const btns=[...root.querySelectorAll('.opt')]; let done=false, raf=0, t0=performance.now();
+  const bar=root.querySelector('.timer i');
+  function tick(now){const left=Math.max(0,1-(now-t0)/(timer*1000));bar.style.transform=`scaleX(${left})`;bar.style.background=left<.3?'var(--coral)':'var(--gold)';
+    if(left<=0){answer(-1);return;} raf=requestAnimationFrame(tick);}
+  if(timer) raf=requestAnimationFrame(tick);
+  function answer(i){
+    if(done)return; done=true; cancelAnimationFrame(raf);
+    const ok=i===q.correct, secsLeft=timer?Math.max(0,timer-(performance.now()-t0)/1000):0;
+    btns.forEach((b,j)=>{b.disabled=true;if(j===q.correct)b.classList.add('right');else if(j===i)b.classList.add('wrong');});
+    const fb=root.querySelector('.fb'); fb.hidden=false; fb.className='fb '+(ok?'good':'bad');
+    const head=ok?pick(['Correct!','Well read!','Spot on!','Great ear!']):(i<0?'Time is up.':'Not quite.');
+    const ans=q.options[q.correct];
+    fb.innerHTML=`<h3>${head}</h3>${ok?'':`<p>The answer is ${q.optAr?ai(ans):'“'+ans+'”'}.</p>`}<p>${q.explain}</p>
+      <div class="row"><button type="button" class="btn ${ok?'mint':'primary'} cont">${contLabel||'Continue'}</button></div>`;
+    ok?sfx.good():sfx.bad();
+    const c=fb.querySelector('.cont'); c.onclick=()=>{activeQ=null;onContinue&&onContinue(ok);}; c.focus({preventScroll:practice});
+    onAnswer&&onAnswer(ok,secsLeft);
+  }
+  btns.forEach(b=>b.onclick=()=>answer(+b.dataset.i));
+  activeQ={answer:i=>{if(i<btns.length)answer(i);},cont:()=>{const c=root.querySelector('.cont');if(c)c.click();},stop:()=>cancelAnimationFrame(raf)};
+}
+function showOverlay(html){$('#ovCard').innerHTML=html||'';$('#overlay').hidden=false;}
+function hideOverlay(){$('#overlay').hidden=true;}
+
+/* =================== GAME ENGINE =================== */
+const cv=$('#cv'), ctx=cv.getContext('2d'), VW=960, VH=540;
+const DPR=Math.min(2,window.devicePixelRatio||1); cv.width=VW*DPR; cv.height=VH*DPR; ctx.scale(DPR,DPR);
+let G=null;
+const keys={left:0,right:0,jump:0};
+function rng(seed){return()=>{seed=(seed*16807)%2147483647;return(seed-1)/2147483646;};}
+const overlap=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
+const GLYPHS=LETTERS.map(l=>l.ar);
+
+function buildLevel(li){
+  const L=LEVELS[li], r=rng(4242+li*977), GY=455;
+  const solids=[{x:0,y:GY,w:560,h:400}], plats=[], coins=[], enemies=[];
+  let x=560;
+  while(solids.length<L.enemies+2){
+    x+=L.gaps[0]+r()*(L.gaps[1]-L.gaps[0]);
+    const w=320+r()*240, y=GY-[0,0,35,60][Math.floor(r()*(li<1?2:4))];
+    const s={x,y,w,h:400}; solids.push(s); x+=w;
+    if(r()<.75){const pw=110+r()*60,px=s.x+40+r()*Math.max(10,w-pw-80),py=s.y-115;plats.push({x:px,y:py,w:pw,h:16});
+      for(let k=0;k<3;k++)coins.push({x:px+pw/2-45+k*35,y:py-38,g:pick(GLYPHS),got:0});}
+    else for(let k=0;k<3;k++)coins.push({x:s.x+w/2-45+k*35,y:s.y-70,g:pick(GLYPHS),got:0});
+  }
+  for(let i=1;i<=L.enemies;i++){const s=solids[i];
+    enemies.push({x:s.x+s.w*.55,y:s.y-40,w:42,h:40,minX:s.x+20,maxX:s.x+s.w-62,dir:r()<.5?-1:1,speed:L.speed,alive:1,
+      hop:r()<L.hop,vy:0,base:s.y-40,t:r()*6,glyph:pick(GLYPHS),dying:0});}
+  const last=solids[solids.length-1];
+  return {solids,plats,coins,enemies,gate:{x:last.x+last.w-120,y:last.y-110,w:70,h:110},worldW:last.x+last.w,
+    stars:Array.from({length:70},()=>({x:r()*VW*2,y:r()*260,s:r()*1.6+.4,t:r()*6}))};
+}
+function startLevel(li){
+  stopGame(); hideOverlay();
+  const lv=buildLevel(li);
+  G={li,L:LEVELS[li],...lv,p:{x:60,y:380,w:28,h:44,vx:0,vy:0,on:0,face:1,inv:0,coy:0,buf:0,cpx:60,cpy:380},
+     cam:0,hearts:3,lost:0,score:0,asked:0,right:0,time:0,paused:0,parts:[],toast:{t:'Level '+(li+1)+': '+LEVELS[li].name,sub:LEVELS[li].focus,life:200},gateMsg:0,raf:0,last:0,done:0};
+  $('#gameTitle').innerHTML=`Level ${li+1}: ${G.L.name} <span>· ${G.L.focus}</span>`;
+  show('game'); G.raf=requestAnimationFrame(loop);
+}
+function stopGame(){if(G){cancelAnimationFrame(G.raf);G.done=1;} if(activeQ&&activeQ.stop)activeQ.stop(); activeQ=null;}
+function loop(ts){
+  if(!G||G.done)return;
+  const dt=G.last?Math.min(2.5,(ts-G.last)/16.667):1; G.last=ts;
+  if(!G.paused)update(dt); draw();
+  G.raf=requestAnimationFrame(loop);
+}
+function respawn(){const p=G.p;p.x=p.cpx;p.y=p.cpy-60;p.vx=0;p.vy=0;p.inv=90;}
+function loseHeart(){G.hearts--;G.lost++;sfx.hit();if(G.hearts<=0){gameOver();return 1;}return 0;}
+
+function update(dt){
+  const p=G.p; G.time+=dt;
+  if(keys.left){p.vx=Math.max(p.vx-.9*dt,-4.8);p.face=-1;}
+  else if(keys.right){p.vx=Math.min(p.vx+.9*dt,4.8);p.face=1;}
+  else p.vx*=Math.pow(.72,dt);
+  if(p.buf>0)p.buf-=dt; if(p.coy>0)p.coy-=dt; if(p.inv>0)p.inv-=dt;
+  if(p.buf>0&&(p.on||p.coy>0)){p.vy=-12.8;p.on=0;p.coy=0;p.buf=0;sfx.jump();}
+  if(!keys.jump&&p.vy<-5)p.vy=-5;
+  p.vy=Math.min(p.vy+.62*dt,15);
+  p.x+=p.vx*dt;
+  for(const s of G.solids)if(overlap(p,s)){if(p.vx>0)p.x=s.x-p.w;else if(p.vx<0)p.x=s.x+s.w;p.vx=0;}
+  p.x=Math.max(0,Math.min(p.x,G.worldW-p.w));
+  const prevB=p.y+p.h; p.y+=p.vy*dt; const wasOn=p.on; p.on=0;
+  for(const s of G.solids)if(overlap(p,s)){if(p.vy>0){p.y=s.y-p.h;p.vy=0;p.on=1;p.cpx=Math.max(s.x+20,Math.min(p.x,s.x+60));p.cpy=s.y;}else if(p.vy<0){p.y=s.y+s.h;p.vy=0;}}
+  if(p.vy>=0)for(const pl of G.plats)if(prevB<=pl.y+1&&p.x+p.w>pl.x&&p.x<pl.x+pl.w&&p.y+p.h>=pl.y){p.y=pl.y-p.h;p.vy=0;p.on=1;}
+  if(wasOn&&!p.on&&p.vy>=0)p.coy=7;
+  if(p.y>VH+80){G.toast={t:'Careful!',sub:'You fell into the sand.',life:90};if(!loseHeart())respawn();return;}
+  // coins
+  for(const c of G.coins)if(!c.got&&Math.abs(p.x+p.w/2-c.x)<24&&Math.abs(p.y+p.h/2-c.y)<30){c.got=1;G.score+=10;sfx.coin();burst(c.x,c.y,'#ffd35c',8);}
+  // enemies
+  for(const e of G.enemies){
+    if(e.dying){e.dying-=dt;continue;} if(!e.alive)continue;
+    e.x+=e.dir*e.speed*dt; if(e.x<e.minX){e.x=e.minX;e.dir=1;} if(e.x>e.maxX){e.x=e.maxX;e.dir=-1;}
+    if(e.hop){e.vy+=.5*dt;e.y+=e.vy*dt;if(e.y>=e.base){e.y=e.base;e.vy=Math.random()<.02*dt?-9:0;}}
+    e.t+=dt*.05;
+    if(p.inv<=0&&overlap({x:p.x+4,y:p.y+4,w:p.w-8,h:p.h-6},{x:e.x+6,y:e.y+8,w:e.w-12,h:e.h-8}))challenge(e);
+  }
+  // gate
+  if(overlap(p,G.gate)){
+    const left=G.enemies.filter(e=>e.alive).length;
+    if(!left)levelComplete(); else if(G.gateMsg<=0){G.toast={t:'The gate is locked',sub:`Defeat ${left} more Scrambler${left>1?'s':''} to open it.`,life:120};G.gateMsg=140;}
+  }
+  if(G.gateMsg>0)G.gateMsg-=dt;
+  G.cam=Math.max(0,Math.min(p.x-VW*.38,G.worldW-VW));
+  for(const pt of G.parts){pt.x+=pt.vx*dt;pt.y+=pt.vy*dt;pt.vy+=.25*dt;pt.life-=dt;}
+  G.parts=G.parts.filter(pt=>pt.life>0);
+  if(G.toast)G.toast.life-=dt;
+}
+function burst(x,y,c,n){for(let i=0;i<n;i++)G.parts.push({x,y,vx:(Math.random()-.5)*7,vy:-Math.random()*6-1,life:30+Math.random()*25,c});}
+
+function challenge(e){
+  G.paused=1; keys.left=keys.right=keys.jump=0; padReset();
+  const q=G.L.gen(); G.asked++;
+  showOverlay();
+  renderQ($('#ovCard'),q,{timer:G.L.timer,
+    onAnswer:(ok,secs)=>{if(ok){G.right++;G.score+=100+Math.round(secs*5);}},
+    onContinue:(ok)=>{
+      hideOverlay(); G.paused=0; G.last=0;
+      if(ok){e.alive=0;e.dying=30;burst(e.x+20,e.y+20,'#ff6f59',18);burst(e.x+20,e.y+20,'#ffd35c',10);
+        const left=G.enemies.filter(x=>x.alive).length;
+        G.toast=left?{t:'Scrambler defeated!',sub:`${left} left`,life:90}:{t:'All Scramblers defeated!',sub:'Run to the gate.',life:150};
+        G.p.inv=30;}
+      else{if(loseHeart())return; const p=G.p; p.vx=(p.x<e.x?-1:1)*7; p.vy=-8; p.inv=110;}
+    }});
+}
+function levelComplete(){
+  G.paused=1; sfx.win(); const li=G.li, stars=G.lost===0?3:G.lost===1?2:1;
+  progress.stars[li]=Math.max(progress.stars[li]||0,stars); progress.unlocked=Math.max(progress.unlocked,Math.min(LEVELS.length,li+2)); store.set('rihla-progress',progress);
+  const next=li+1<LEVELS.length;
+  showOverlay(`<div class="end card" style="box-shadow:none;padding:0;width:100%">
+    <span class="q-tag practice">Gate opened</span><h2>${G.L.name} complete!</h2>
+    <div class="big-stars">${starStr(stars)}</div>
+    <p>${G.right} of ${G.asked} questions right · score ${G.score}</p>
+    ${next?`<p>Next: <b style="color:var(--ink)">${LEVELS[li+1].name}</b>, ${LEVELS[li+1].focus.toLowerCase()}.</p>`:'<p>You finished the whole journey. رائع!</p>'}
+    <div class="cta">${next?'<button class="btn primary" id="eNext" type="button">Next level</button>':''}
+    <button class="btn" id="eAgain" type="button">Play again</button><button class="btn ghost" id="eMap" type="button">Map</button></div></div>`);
+  wireEnd(li,next);
+}
+function gameOver(){
+  G.paused=1; const li=G.li;
+  const topic={0:'sounds',1:'short',2:'long',3:'forms',4:'words'}[li];
+  showOverlay(`<div class="end card" style="box-shadow:none;padding:0;width:100%">
+    <span class="q-tag">Out of hearts</span><h2>The Scramblers won this time</h2>
+    <p>${G.right} of ${G.asked} questions right. A few minutes in the practice room will help.</p>
+    <div class="cta"><button class="btn primary" id="eAgain" type="button">Try again</button>
+    <button class="btn mint" id="ePrac" type="button">Practise ${TOPICS.find(t=>t.id===topic).label.toLowerCase()}</button>
+    <button class="btn ghost" id="eMap" type="button">Map</button></div></div>`);
+  wireEnd(li,0,topic);
+}
+function wireEnd(li,next,topic){
+  const n=$('#eNext');if(n){n.onclick=()=>startLevel(li+1);n.focus();}
+  $('#eAgain').onclick=()=>startLevel(li); if(!n)$('#eAgain').focus();
+  $('#eMap').onclick=()=>{hideOverlay();stopGame();renderPath();show('menu');};
+  const pr=$('#ePrac');if(pr)pr.onclick=()=>{hideOverlay();stopGame();openPractice(topic);};
+}
+
+/* =================== DRAWING =================== */
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function dunes(off,base,amp,col,par){ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(0,VH);
+  for(let x=0;x<=VW;x+=16){const wx=x+G.cam*par;ctx.lineTo(x,base-Math.sin(wx*.004+off)*amp-Math.sin(wx*.011+off*2)*amp*.35);}ctx.lineTo(VW,VH);ctx.fill();}
+function draw(){
+  const L=G.L, cam=G.cam;
+  const g=ctx.createLinearGradient(0,0,0,VH);g.addColorStop(0,L.sky[0]);g.addColorStop(1,L.sky[1]);ctx.fillStyle=g;ctx.fillRect(0,0,VW,VH);
+  for(const s of G.stars){const x=((s.x-cam*.05)%(VW*2)+VW*2)%(VW*2);if(x>VW)continue;ctx.globalAlpha=.4+.4*Math.sin(G.time*.03+s.t);ctx.fillStyle='#fff';ctx.fillRect(x,s.y,s.s,s.s);}
+  ctx.globalAlpha=1;
+  ctx.fillStyle='#fbe9c2';ctx.beginPath();ctx.arc(780-cam*.03,90,34,0,7);ctx.fill();ctx.fillStyle=L.sky[0];ctx.beginPath();ctx.arc(766-cam*.03,82,30,0,7);ctx.fill();
+  dunes(1,360,30,'rgba(20,40,60,.55)',.15); dunes(3,410,26,'rgba(120,80,50,.45)',.35);
+  ctx.save();ctx.translate(-cam,0);
+  // ground
+  for(const s of G.solids){if(s.x+s.w<cam-10||s.x>cam+VW+10)continue;
+    ctx.fillStyle='#d9a95c';ctx.fillRect(s.x,s.y,s.w,VH-s.y+10);
+    ctx.fillStyle='#e8bf72';rr(s.x,s.y,s.w,16,6);ctx.fill();
+    ctx.fillStyle='#b9873f';for(let x=s.x+14;x<s.x+s.w-8;x+=34){ctx.fillRect(x,s.y+30+((x*7)%23),4,4);ctx.fillRect(x+15,s.y+58+((x*3)%19),3,3);}
+  }
+  // platforms
+  for(const pl of G.plats){ctx.fillStyle='#7a4f2e';rr(pl.x,pl.y,pl.w,pl.h,6);ctx.fill();ctx.fillStyle='#a8713f';rr(pl.x,pl.y,pl.w,6,4);ctx.fill();}
+  // gate
+  drawGate();
+  // coins (letter tiles)
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  for(const c of G.coins){if(c.got)continue;const y=c.y+Math.sin(G.time*.08+c.x)*4;
+    ctx.fillStyle='#ffd35c';rr(c.x-13,y-14,26,28,7);ctx.fill();ctx.fillStyle='#8a5a12';ctx.font='700 18px "Noto Naskh Arabic", serif';ctx.fillText(c.g,c.x,y+1);}
+  for(const e of G.enemies)drawEnemy(e);
+  drawPlayer(G.p);
+  for(const pt of G.parts){ctx.globalAlpha=Math.min(1,pt.life/20);ctx.fillStyle=pt.c;ctx.fillRect(pt.x-3,pt.y-3,6,6);}ctx.globalAlpha=1;
+  ctx.restore();
+  drawHUD();
+}
+function drawGate(){
+  const gt=G.gate, open=!G.enemies.some(e=>e.alive);
+  ctx.fillStyle='#5b3a24';ctx.fillRect(gt.x-8,gt.y,16,gt.h);ctx.fillRect(gt.x+gt.w-8,gt.y,16,gt.h);
+  ctx.strokeStyle='#5b3a24';ctx.lineWidth=14;ctx.beginPath();ctx.arc(gt.x+gt.w/2,gt.y+6,gt.w/2,Math.PI,0);ctx.stroke();
+  if(open){const gg=ctx.createRadialGradient(gt.x+gt.w/2,gt.y+60,5,gt.x+gt.w/2,gt.y+60,70);gg.addColorStop(0,'rgba(127,224,184,.9)');gg.addColorStop(1,'rgba(127,224,184,0)');ctx.fillStyle=gg;ctx.fillRect(gt.x-40,gt.y-40,gt.w+80,gt.h+40);}
+  else{ctx.fillStyle='#3a2416';for(let i=0;i<4;i++)ctx.fillRect(gt.x+10+i*15,gt.y+6,5,gt.h-6);}
+  // palm
+  const px=gt.x+gt.w+40, py=gt.y+gt.h;ctx.strokeStyle='#6b4a2a';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(px,py);ctx.quadraticCurveTo(px+10,py-70,px-4,py-130);ctx.stroke();
+  ctx.fillStyle='#2f7a5a';for(let a=0;a<6;a++){ctx.save();ctx.translate(px-4,py-130);ctx.rotate(a*1.05+.3);ctx.beginPath();ctx.ellipse(28,0,30,8,0,0,7);ctx.fill();ctx.restore();}
+  ctx.font='700 16px "Baloo 2", sans-serif';ctx.fillStyle=open?'#7fe0b8':'#f6efe2';ctx.textAlign='center';
+  ctx.fillText(open?'OPEN':'LOCKED',gt.x+gt.w/2,gt.y-36);
+}
+function drawEnemy(e){
+  if(!e.alive&&!e.dying)return;
+  const x=e.x,y=e.y,w=e.w,sc=e.dying?e.dying/30:1, wob=Math.sin(G.time*.15+e.t*10)*2.5;
+  ctx.save();ctx.translate(x+w/2,y+e.h);ctx.scale(sc,sc);
+  ctx.fillStyle='rgba(0,0,0,.2)';ctx.beginPath();ctx.ellipse(0,0,20,5,0,0,7);ctx.fill();
+  ctx.fillStyle='#ff6f59';ctx.beginPath();ctx.moveTo(-21,0);ctx.quadraticCurveTo(-24-wob,-40,0,-42+wob);ctx.quadraticCurveTo(24+wob,-40,21,0);
+  for(let i=0;i<4;i++){ctx.quadraticCurveTo(15-i*11,-7,10-i*11,0);}ctx.closePath();ctx.fill();
+  const look=Math.sign(G.p.x-x)*2.5;
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(-8,-26,6.5,0,7);ctx.arc(8,-26,6.5,0,7);ctx.fill();
+  ctx.fillStyle='#1b1b2a';ctx.beginPath();ctx.arc(-8+look,-25,3,0,7);ctx.arc(8+look,-25,3,0,7);ctx.fill();
+  ctx.strokeStyle='#8c2f22';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(-14,-36);ctx.lineTo(-3,-32);ctx.moveTo(14,-36);ctx.lineTo(3,-32);ctx.stroke();
+  ctx.restore();
+  if(e.alive){ctx.save();ctx.translate(x+w/2,y-18+Math.sin(G.time*.1+e.t*8)*3);ctx.rotate(Math.sin(G.time*.05+e.t)*.5);
+    ctx.font='700 22px "Noto Naskh Arabic", serif';ctx.fillStyle='#ffd35c';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(e.glyph,-7,0);
+    ctx.font='800 18px "Baloo 2", sans-serif';ctx.fillText('?',10,-2);ctx.restore();}
+}
+function drawPlayer(p){
+  if(p.inv>0&&Math.floor(p.inv/5)%2)return;
+  const walk=p.on?Math.sin(G.time*.35)*Math.min(Math.abs(p.vx),4.8)*1.6:4;
+  ctx.save();ctx.translate(p.x+p.w/2,p.y);ctx.scale(p.face,1);
+  ctx.fillStyle='rgba(0,0,0,.2)';ctx.beginPath();ctx.ellipse(0,p.h,13,4,0,0,7);ctx.fill();
+  ctx.fillStyle='#3b2f45';ctx.fillRect(-8+walk*.5,32,6,12);ctx.fillRect(2-walk*.5,32,6,12);
+  ctx.fillStyle='#6b4a2a';rr(-15,15,8,16,3);ctx.fill();
+  ctx.fillStyle='#2f9e8f';rr(-11,14,22,21,6);ctx.fill();
+  ctx.fillStyle='#c98e5f';ctx.beginPath();ctx.arc(0,9,10,0,7);ctx.fill();
+  ctx.fillStyle='#f6efe2';ctx.beginPath();ctx.arc(0,5,11,Math.PI,0);ctx.fill();ctx.fillRect(-11,4,22,3);
+  ctx.fillStyle='#ff6f59';ctx.fillRect(-10,15,20,4);ctx.beginPath();ctx.moveTo(-9,16);ctx.lineTo(-17-Math.abs(p.vx),14+Math.sin(G.time*.3)*2);ctx.lineTo(-9,20);ctx.fill();
+  ctx.fillStyle='#1b1b2a';ctx.beginPath();ctx.arc(5,10,1.8,0,7);ctx.fill();
+  ctx.restore();
+}
+function heart(x,y,full){ctx.fillStyle=full?'#ff6f59':'rgba(255,255,255,.18)';ctx.beginPath();ctx.moveTo(x,y+6);ctx.bezierCurveTo(x,y,x-10,y,x-10,y+6);ctx.bezierCurveTo(x-10,y+12,x,y+16,x,y+20);ctx.bezierCurveTo(x,y+16,x+10,y+12,x+10,y+6);ctx.bezierCurveTo(x+10,y,x,y,x,y+6);ctx.fill();}
+function drawHUD(){
+  ctx.fillStyle='rgba(8,20,30,.55)';rr(14,12,VW-28,42,14);ctx.fill();
+  for(let i=0;i<3;i++)heart(40+i*28,22,i<G.hearts);
+  ctx.textBaseline='middle';ctx.font='700 18px "Baloo 2", sans-serif';ctx.fillStyle='#f6efe2';
+  const left=G.enemies.filter(e=>e.alive).length;
+  ctx.textAlign='center';ctx.fillText(`Scramblers left: ${left} / ${G.enemies.length}`,VW/2,34);
+  ctx.textAlign='right';ctx.fillStyle='#ffd35c';ctx.fillText(`Score ${G.score}`,VW-34,34);
+  if(G.toast&&G.toast.life>0){const a=Math.min(1,G.toast.life/30);ctx.globalAlpha=a;ctx.fillStyle='rgba(8,20,30,.7)';rr(VW/2-230,74,460,G.toast.sub?66:44,14);ctx.fill();
+    ctx.textAlign='center';ctx.fillStyle='#f6efe2';ctx.font='800 22px "Baloo 2", sans-serif';ctx.fillText(G.toast.t,VW/2,96);
+    if(G.toast.sub){ctx.font='600 16px "Baloo 2", sans-serif';ctx.fillStyle='#a9c0c8';ctx.fillText(G.toast.sub,VW/2,122);}ctx.globalAlpha=1;}
+}
+
+/* =================== INPUT =================== */
+const KMAP={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',ArrowUp:'jump',KeyW:'jump',Space:'jump'};
+addEventListener('keydown',e=>{
+  if(!$('#overlay').hidden||screen==='practice'){
+    if(activeQ){const n=parseInt(e.key,10);if(n>=1&&n<=4){activeQ.answer(n-1);e.preventDefault();}}
+    return;
+  }
+  if(screen!=='game'||!G)return; const k=KMAP[e.code]; if(!k)return; e.preventDefault();
+  if(k==='jump'&&!keys.jump)G.p.buf=8; keys[k]=1;
+});
+addEventListener('keyup',e=>{const k=KMAP[e.code];if(k)keys[k]=0;});
+document.querySelectorAll('.pad button').forEach(b=>{const k=b.dataset.k;
+  const on=e=>{e.preventDefault();if(k==='jump'&&!keys.jump&&G)G.p.buf=8;keys[k]=1;b.classList.add('on');};
+  const off=e=>{e.preventDefault();keys[k]=0;b.classList.remove('on');};
+  b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off);b.addEventListener('pointerleave',off);});
+function padReset(){document.querySelectorAll('.pad button').forEach(b=>b.classList.remove('on'));}
+addEventListener('blur',()=>{keys.left=keys.right=keys.jump=0;padReset();});
+
+/* =================== PRACTICE ROOM =================== */
+const P={topic:'sounds',right:0,total:0,streak:0,best:0,lastKey:''};
+$('#chips').innerHTML=TOPICS.map(t=>`<button type="button" class="chip" data-t="${t.id}" aria-pressed="false">${t.label}</button>`).join('');
+$('#chips').addEventListener('click',e=>{const c=e.target.closest('.chip');if(c){P.topic=c.dataset.t;syncChips();nextPractice();}});
+$('#chart').innerHTML='<span></span><span class="h">a</span><span class="h">u</span><span class="h">i</span>'+
+  `<span class="h">Short</span><span class="c" lang="ar">بَ</span><span class="c" lang="ar">بُ</span><span class="c" lang="ar">بِ</span>`+
+  `<span></span><span class="l">ba</span><span class="l">bu</span><span class="l">bi</span>`+
+  `<span class="h">Long</span><span class="c" lang="ar">بَا</span><span class="c" lang="ar">بُو</span><span class="c" lang="ar">بِي</span>`+
+  `<span></span><span class="l">baa</span><span class="l">boo</span><span class="l">bee</span>`;
+function syncChips(){document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',c.dataset.t===P.topic));$('#pracTip').innerHTML=TOPICS.find(t=>t.id===P.topic).tip;}
+function syncStats(){$('#sCorrect').textContent=`${P.right} / ${P.total}`;$('#sStreak').textContent=P.streak;$('#sBest').textContent=P.best;}
+function nextPractice(){
+  const T=TOPICS.find(t=>t.id===P.topic); let q,tries=0; do{q=T.gen();tries++;}while(q.key===P.lastKey&&tries<6); P.lastKey=q.key;
+  renderQ($('#pracCard'),q,{practice:true,contLabel:'Next question',
+    onAnswer:ok=>{P.total++;if(ok){P.right++;P.streak++;P.best=Math.max(P.best,P.streak);}else P.streak=0;syncStats();},
+    onContinue:()=>nextPractice()});
+}
+function openPractice(topic){stopGame();if(topic)P.topic=topic;syncChips();syncStats();show('practice');nextPractice();}
+addEventListener('keydown',e=>{if(e.key==='Enter'&&activeQ&&document.activeElement&&!document.activeElement.classList.contains('cont')){activeQ.cont();}});
+
+/* =================== BOOT =================== */
+renderPath();
+})();
+</script>
+
+</body></html>
