@@ -1,0 +1,766 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Rihla Sentence Quest</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Noto+Naskh+Arabic:wght@500;700&display=swap">
+<style>
+/* Layout: one-screen game shell — journey map, practice room (learn + check, required before each level), canvas stage, full-screen question overlay. Single dusk-desert look by choice. */
+:root{
+  --deep:#0b1c29; --night:#10283a; --panel:#15344a; --panel-2:#1c4560;
+  --sand:#e8bf72; --coral:#ff6f59; --mint:#7fe0b8; --gold:#ffd35c;
+  --ink:#f6efe2; --muted:#a9c0c8; --line:#2b5670;
+  --ui:'Baloo 2','Trebuchet MS',system-ui,sans-serif;
+  --ar:'Noto Naskh Arabic','Geeza Pro','Traditional Arabic','Arabic Typesetting',serif;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--deep);color:var(--ink);font-family:var(--ui);font-size:16px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto;padding-block:18px 28px}
+.ai{font-family:var(--ar);color:var(--gold);font-size:1.25em;padding:0 .1em}
+
+.hero{display:grid;gap:6px;justify-items:start;padding-block:14px 8px}
+.hero .arabic{font-family:var(--ar);font-size:clamp(2.6rem,8vw,4.2rem);line-height:1.25;color:var(--gold);direction:rtl}
+.hero h1{margin:0;font-size:clamp(1.6rem,4.5vw,2.4rem);font-weight:800;line-height:1.1}
+.hero p{margin:0;color:var(--muted);max-width:62ch}
+.cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px}
+.btn{border:0;border-radius:14px;padding:12px 22px;font-weight:700;font-size:1.05rem;background:var(--panel-2);box-shadow:0 4px 0 #0a1824}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 #0a1824}
+.btn.primary{background:var(--gold);color:#3a2606;box-shadow:0 4px 0 #b8901f}
+.btn.mint{background:var(--mint);color:#0d3a2a;box-shadow:0 4px 0 #3e9b78}
+.btn.ghost{background:transparent;box-shadow:none;border:2px solid var(--line);padding:8px 16px;font-size:.95rem}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.section-label{margin:30px 0 10px;font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}
+
+.path{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.stop{text-align:left;border:2px solid var(--line);background:var(--night);border-radius:16px;padding:14px;display:grid;gap:4px;min-width:0}
+.stop:hover:not([disabled]){border-color:var(--gold)}
+.stop[disabled]{opacity:.45;cursor:not-allowed}
+.stop .num{font-size:.8rem;color:var(--muted);font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.stop .nm{font-size:1.15rem;font-weight:800;line-height:1.15}
+.stop .nm-ar{font-family:var(--ar);color:var(--sand);direction:rtl;font-size:1.1rem}
+.stop .fc{color:var(--muted);font-size:.9rem}
+.stop .meta{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px;font-size:.85rem}
+.pill{border-radius:999px;padding:1px 10px;font-weight:700;font-size:.8rem}
+.pill.need{background:#4a3a18;color:var(--gold)}
+.pill.ready{background:#174a3c;color:var(--mint)}
+.pill.lock{background:#1b3346;color:var(--muted)}
+.stars{color:var(--gold);letter-spacing:2px}
+.stars .off{color:#3b5a6e}
+.how{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.how div{background:var(--night);border-radius:14px;padding:12px 14px;color:var(--muted);font-size:.95rem}
+.how b{color:var(--ink);display:block;font-size:1rem}
+kbd{font-family:var(--ui);background:var(--panel-2);border-radius:6px;padding:0 6px;font-size:.85rem;color:var(--ink)}
+.teacher{margin-top:26px;color:var(--muted);font-size:.9rem;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.teacher input{font:inherit;background:var(--night);color:var(--ink);border:2px solid var(--line);border-radius:10px;padding:6px 10px;width:140px}
+.linkish{background:none;border:0;color:var(--muted);text-decoration:underline;padding:0}
+
+/* Game */
+#game .bar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+#game .bar .ttl{font-weight:800;font-size:1.05rem}
+#game .bar .ttl span{color:var(--muted);font-weight:600}
+.stage{position:relative;width:100%;max-width:calc((100dvh - 190px) * 16 / 9);min-width:min(100%,320px);aspect-ratio:16/9;margin:0 auto;border-radius:18px;overflow:hidden;background:var(--night);box-shadow:0 0 0 2px var(--line)}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+.pad{display:none;justify-content:space-between;gap:12px;margin-top:12px;user-select:none;-webkit-user-select:none}
+.pad .grp{display:flex;gap:12px}
+.pad button{width:72px;height:64px;border-radius:16px;border:0;background:var(--panel-2);font-size:1.6rem;font-weight:800;touch-action:none;box-shadow:0 4px 0 #0a1824}
+.pad button.on{background:var(--gold);color:#3a2606}
+.pad .jump{width:110px}
+@media (pointer:coarse){.pad{display:flex}}
+
+/* Question card */
+.overlay{position:fixed;inset:0;z-index:20;background:rgba(5,14,22,.8);display:grid;place-items:center;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow:auto}
+.card{width:min(660px,100%);background:var(--panel);border-radius:22px;padding:20px;box-shadow:0 0 0 2px var(--line),0 20px 60px rgba(0,0,0,.45);display:grid;gap:12px}
+.q-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.q-tag{font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:var(--coral)}
+.q-tag.practice{color:var(--mint)}
+.hear{border:2px solid var(--line);background:transparent;border-radius:999px;padding:4px 14px;font-weight:700;font-size:.9rem}
+.timer{height:8px;border-radius:99px;background:var(--night);overflow:hidden}
+.timer i{display:block;height:100%;width:100%;background:var(--gold);transform-origin:left}
+.q-prompt{margin:0;font-size:1.25rem;font-weight:700;line-height:1.3;text-wrap:balance}
+.q-prompt .em{font-size:1.6em;vertical-align:middle;margin-left:.2em}
+.q-sub{margin:-6px 0 0;color:var(--muted)}
+.q-big{font-family:var(--ar);font-size:clamp(2.6rem,10vw,4rem);line-height:1.6;text-align:center;color:var(--gold);background:var(--night);border-radius:16px;padding:6px 14px}
+.q-big.sent{font-size:clamp(1.6rem,5.5vw,2.3rem);line-height:1.8}
+.q-big .gap{display:inline-block;min-width:3.2em;border-bottom:3px dashed var(--coral);margin:0 .15em}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.opts.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.opts.long{grid-template-columns:minmax(0,1fr)}
+.opt{display:flex;align-items:center;gap:10px;border:2px solid var(--line);background:var(--night);border-radius:14px;padding:10px 12px;min-height:60px;text-align:left;min-width:0}
+.opt .k{flex:none;width:24px;height:24px;border-radius:7px;background:var(--panel-2);font-size:.8rem;font-weight:800;display:grid;place-items:center;color:var(--muted)}
+.opt .t{font-size:1.2rem;font-weight:700;flex:1;text-align:center;overflow-wrap:anywhere}
+.opts.ar-opts .opt .t{font-family:var(--ar);font-size:1.9rem;line-height:1.5}
+.opts.ar-opts.long .opt .t{font-size:1.45rem;text-align:right}
+.opts.long .opt .t{text-align:left}
+.opt:hover:not([disabled]){border-color:var(--gold)}
+.opt.right{border-color:var(--mint);background:#174a3c}
+.opt.wrong{border-color:var(--coral);background:#4a2228}
+.opt[disabled]{cursor:default}
+.build-line,.build-pool{display:flex;flex-wrap:wrap;gap:8px;direction:rtl;min-height:64px;align-items:center;border-radius:14px;padding:8px}
+.build-line{background:var(--night);border:2px dashed var(--line)}
+.build-line:empty::before{content:'Tap the words in order';direction:ltr;color:var(--muted);font-family:var(--ui);margin:auto}
+.tile{font-family:var(--ar);font-size:1.5rem;line-height:1.5;border:0;border-radius:12px;padding:4px 14px;background:var(--panel-2);box-shadow:0 3px 0 #0a1824}
+.build-line .tile{background:var(--gold);color:#3a2606;box-shadow:0 3px 0 #b8901f}
+.build-line.right{border-color:var(--mint)} .build-line.wrong{border-color:var(--coral)}
+.build-row{display:flex;justify-content:space-between;gap:10px}
+.fb{border-radius:14px;padding:12px 14px;display:grid;gap:8px}
+.fb.good{background:#174a3c}.fb.bad{background:#4a2228}
+.fb h3{margin:0;font-size:1.15rem}.fb p{margin:0}
+.fb .row{display:flex;justify-content:flex-end}
+.end{text-align:center;justify-items:center}
+.end h2{margin:0;font-size:1.8rem;line-height:1.1}
+.end .big-stars{font-size:2.6rem;color:var(--gold);letter-spacing:6px}
+.end .big-stars .off{color:#3b5a6e}
+.end p{margin:0;color:var(--muted)}
+.end .cta{justify-content:center}
+
+/* Practice room */
+.prac-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.prac-head h2{margin:0;font-size:1.6rem}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.chip{border:2px solid var(--line);background:var(--night);border-radius:999px;padding:6px 14px;font-weight:700;font-size:.95rem}
+.chip[aria-pressed="true"]{background:var(--mint);color:#0d3a2a;border-color:var(--mint)}
+.chip .ok{color:var(--mint);margin-left:4px}
+.chip[aria-pressed="true"] .ok{color:#0d3a2a}
+.topic-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.topic-head h3{margin:0;font-size:1.4rem;line-height:1.2}
+.topic-head .ar-t{font-family:var(--ar);color:var(--sand);font-size:1.3rem;direction:rtl}
+.status{color:var(--muted)}
+.status b{color:var(--mint)}
+.words{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.wcard{border:2px solid var(--line);background:var(--night);border-radius:14px;padding:10px;display:grid;justify-items:center;gap:0;text-align:center;min-width:0}
+.wcard:hover{border-color:var(--gold)}
+.wcard .e{font-size:1.8rem;line-height:1.2}
+.wcard .a{font-family:var(--ar);font-size:1.6rem;line-height:1.6;color:var(--gold)}
+.wcard .n{color:var(--muted);font-size:.9rem}
+.slist{display:grid;gap:8px}
+.srow{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap-reverse;border:2px solid var(--line);background:var(--night);border-radius:14px;padding:8px 14px;text-align:left}
+.srow:hover{border-color:var(--gold)}
+.srow .en{color:var(--muted);min-width:0}
+.srow .ar{font-family:var(--ar);font-size:1.45rem;line-height:1.7;direction:rtl;color:var(--ink);margin-left:auto}
+.srow .qa{display:grid;text-align:right;margin-left:auto}
+.srow .qa .q{font-family:var(--ar);font-size:1.35rem;color:var(--gold);line-height:1.6}
+.srow .qa .a{font-family:var(--ar);font-size:1.35rem;line-height:1.6}
+.check-box{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;background:var(--panel);border-radius:18px;padding:16px 18px;box-shadow:0 0 0 2px var(--line);margin-top:22px}
+.check-box p{margin:0;color:var(--muted)}
+.check-box b{color:var(--ink)}
+.prog{display:flex;flex-wrap:wrap;gap:6px;justify-content:space-between;color:var(--muted);font-weight:700;font-variant-numeric:tabular-nums}
+.dots{display:flex;gap:5px}
+.dots i{width:12px;height:12px;border-radius:50%;background:var(--line)}
+.dots i.g{background:var(--mint)}.dots i.b{background:var(--coral)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<!-- MENU -->
+<section id="menu" class="wrap">
+  <div class="hero">
+    <div class="arabic" lang="ar">رحلة الجُمَل</div>
+    <h1>Rihla Sentence Quest</h1>
+    <p>Six familiar topics, from words to full sentences. Learn each topic in the practice room first, pass its check, then defeat the Scramblers to open the gate.</p>
+    <div class="cta">
+      <button class="btn mint" id="btnPractice" type="button">Go to the practice room</button>
+      <button class="btn primary" id="btnPlay" type="button">Play next level</button>
+    </div>
+  </div>
+  <div class="section-label">The journey · practise, then play</div>
+  <div class="path" id="path"></div>
+  <div class="section-label">How it works</div>
+  <div class="how">
+    <div><b>1. Learn</b>In the practice room, tap any word or sentence to hear it. Read the questions and answers out loud.</div>
+    <div><b>2. Pass the check</b>Answer 10 questions about the topic. Get 8 right to unlock that level.</div>
+    <div><b>3. Play</b>Arrow keys or <kbd>A</kbd> <kbd>D</kbd> to move, <kbd>Space</kbd> to jump. Touch a Scrambler to get a question. Press <kbd>1</kbd>–<kbd>4</kbd> to answer.</div>
+    <div><b>4. Build sentences</b>In the harder levels, tap the words in the right order to build the sentence. Arabic reads right to left.</div>
+  </div>
+  <div class="teacher">
+    <button class="linkish" id="tShow" type="button">Teacher: unlock all levels</button>
+    <span id="tForm" hidden><label for="tCode">Code</label> <input id="tCode" type="password" autocomplete="off"> <button class="btn ghost" id="tGo" type="button">Unlock</button> <span id="tMsg"></span></span>
+  </div>
+</section>
+
+<!-- GAME -->
+<section id="game" class="wrap" hidden>
+  <div class="bar">
+    <button class="btn ghost" id="btnMap" type="button">← Map</button>
+    <div class="ttl" id="gameTitle"></div>
+    <button class="btn ghost" id="btnRestart" type="button">Restart level</button>
+  </div>
+  <div class="stage"><canvas id="cv" width="960" height="540" aria-label="Platform game"></canvas></div>
+  <div class="pad" aria-hidden="true">
+    <div class="grp"><button type="button" data-k="left">◀</button><button type="button" data-k="right">▶</button></div>
+    <button type="button" class="jump" data-k="jump">Jump</button>
+  </div>
+</section>
+
+<!-- PRACTICE -->
+<section id="practice" class="wrap" hidden>
+  <div class="prac-head">
+    <h2>Practice room</h2>
+    <button class="btn ghost" id="btnPracBack" type="button">← Journey map</button>
+  </div>
+  <div class="chips" id="chips" role="group" aria-label="Choose a topic"></div>
+  <div id="learn"></div>
+  <div id="check" hidden>
+    <div class="card" style="margin:0 auto">
+      <div class="prog"><span id="cProg"></span><span class="dots" id="cDots"></span></div>
+      <div id="cCard" style="display:grid;gap:12px"></div>
+    </div>
+  </div>
+</section>
+
+<div class="overlay" id="overlay" hidden><div class="card" id="ovCard"></div></div>
+
+<script>
+(() => {
+/* =================== TOPIC CONTENT =================== */
+// words: [arabic, english, picture]; sentences: t = chunks, g = gap index, w = wrong gap words, b = buildable, alt = other valid orders, x = extra note; qa: [question, answer, question in English]
+const TOPICS=[
+{id:'me',name:'All about me',ar:'عن نفسي',
+ words:[['مرحبا','hello','👋'],['صباح الخير','good morning','🌅'],['كيف حالك؟','how are you?','🙂'],['بخير','fine / well','👍'],['شكرا','thank you','🙏'],['مع السلامة','goodbye','🚶'],['اسمي','my name is','🏷️'],['عمري','I am … years old','🎂'],['سنة','year','📅'],['أسكن في','I live in','🏠'],['أنا من','I am from','🌍'],['طالب / طالبة','student','🎒']],
+ sentences:[
+  {t:['اسمي','سارة.'],en:'My name is Sara.',g:0,w:['عمري','أسكن','شكرا']},
+  {t:['عمري','12','سنة.'],en:'I am 12 years old.',g:0,w:['اسمي','أسكن','مرحبا']},
+  {t:['أسكن','في','دبي.'],en:'I live in Dubai.',g:0,w:['عمري','اسمي','بخير'],b:1},
+  {t:['أنا','من','الأردن.'],en:'I am from Jordan.',g:0,w:['اسمي','عمري','شكرا'],b:1},
+  {t:['أنا','بخير،','شكرا.'],en:"I'm fine, thank you.",g:1,w:['اسمي','سنة','من']},
+  {t:['اسمي','أحمد','وعمري','13','سنة.'],en:'My name is Ahmed and I am 13 years old.',g:2,w:['وأسكن','ومن','وشكرا'],b:1}],
+ qa:[['ما اسمك؟','اسمي ليلى.','What is your name?'],['كم عمرك؟','عمري 11 سنة.','How old are you?'],['أين تسكن؟','أسكن في أبوظبي.','Where do you live?'],['من أين أنت؟','أنا من مصر.','Where are you from?'],['كيف حالك؟','بخير، الحمد لله.','How are you?']]},
+{id:'family',name:'My family',ar:'عائلتي',
+ words:[['عائلة','family','👨‍👩‍👧'],['أب','father','👨'],['أم','mother','👩'],['أخ','brother','👦'],['أخت','sister','👧'],['جد','grandfather','👴'],['جدة','grandmother','👵'],['عندي','I have','🤲'],['ليس عندي',"I don't have",'🚫'],['كبيرة','big','🐘'],['صغيرة','small','🐭'],['أحب','I love / I like','❤️']],
+ sentences:[
+  {t:['عندي','أخ','واحد.'],en:'I have one brother.',g:0,w:['أسكن','اسمي','مرحبا'],b:1},
+  {t:['عائلتي','كبيرة.'],en:'My family is big.',g:1,w:['أخي','عندي','أبي']},
+  {t:['أختي','اسمها','ليلى.'],en:"My sister's name is Laila.",g:1,w:['اسمه','عمري','عندي'],b:1,x:'أختي is a girl, so we say اسمها (her name).'},
+  {t:['أبي','طبيب.'],en:'My dad is a doctor.',g:0,w:['أمي','أختي','جدتي'],x:'طبيب is the word for a man. For a woman we say طبيبة.'},
+  {t:['ليس','عندي','أخت.'],en:"I don't have a sister.",g:0,w:['أنا','في','من'],b:1},
+  {t:['في','عائلتي','خمسة','أشخاص.'],en:'There are five people in my family.',g:1,w:['أختي','أبي','عندي'],b:1}],
+ qa:[['هل عندك إخوة؟','نعم، عندي أخ وأخت.','Do you have brothers or sisters?'],['ما اسم أمك؟','اسمها مريم.',"What is your mother's name?"],['كم شخصا في عائلتك؟','في عائلتي ستة أشخاص.','How many people are in your family?'],['هل تحب عائلتك؟','نعم، أحب عائلتي كثيرا.','Do you love your family?']]},
+{id:'school',name:'My school',ar:'مدرستي',
+ words:[['مدرسة','school','🏫'],['معلم / معلمة','teacher','🧑‍🏫'],['كتاب','book','📕'],['قلم','pen','🖊️'],['دفتر','notebook','📓'],['حقيبة','bag','🎒'],['الرياضيات','maths','➗'],['العلوم','science','🔬'],['الرسم','art','🎨'],['الرياضة','PE / sport','⚽'],['سهل','easy','✅'],['صعب','difficult','🧗']],
+ sentences:[
+  {t:['مادتي','المفضلة','العلوم.'],en:'My favourite subject is science.',g:2,w:['القلم','الحقيبة','الدفتر'],b:1},
+  {t:['أحب','الرسم','لأنه','ممتع.'],en:'I like art because it is fun.',g:2,w:['لكن','في','مع'],b:1},
+  {t:['الرياضيات','صعبة.'],en:'Maths is difficult.',g:1,w:['قلم','مدرسة','دفتر']},
+  {t:['في','حقيبتي','كتاب','وقلم.'],en:'In my bag there is a book and a pen.',g:1,w:['معلمي','مادتي','أبي']},
+  {t:['معلمي','لطيف.'],en:'My teacher is kind.',g:1,w:['صعبة','كبيرة','لطيفة'],x:'معلمي is a man, so the describing word has no ة: لطيف.'},
+  {t:['أذهب','إلى','المدرسة','بالحافلة.'],en:'I go to school by bus.',g:1,w:['في','عن','على'],b:1}],
+ qa:[['ما مادتك المفضلة؟','مادتي المفضلة الرياضة.','What is your favourite subject?'],['ماذا في حقيبتك؟','في حقيبتي دفتر وقلم.','What is in your bag?'],['كيف تذهب إلى المدرسة؟','أذهب بالسيارة.','How do you go to school?'],['هل تحب العلوم؟ لماذا؟','نعم، أحبها لأنها ممتعة.','Do you like science? Why?']]},
+{id:'food',name:'Food and drink',ar:'الطعام والشراب',
+ words:[['خبز','bread','🍞'],['جبن','cheese','🧀'],['بيض','eggs','🥚'],['حليب','milk','🥛'],['ماء','water','💧'],['عصير','juice','🧃'],['تفاحة','apple','🍎'],['دجاج','chicken','🍗'],['أرز','rice','🍚'],['سمك','fish','🐟'],['فطور','breakfast','🍳'],['لذيذ','delicious','😋']],
+ sentences:[
+  {t:['آكل','الخبز','والجبن','في','الفطور.'],en:'I eat bread and cheese for breakfast.',g:0,w:['أشرب','أنام','أسكن'],b:1,alt:['في الفطور آكل الخبز والجبن']},
+  {t:['أشرب','الماء','كل','يوم.'],en:'I drink water every day.',g:0,w:['آكل','ألعب','أذهب'],b:1,alt:['كل يوم أشرب الماء']},
+  {t:['أحب','الأرز','مع','الدجاج.'],en:'I like rice with chicken.',g:2,w:['في','إلى','على'],b:1,alt:['أحب الدجاج مع الأرز']},
+  {t:['لا','أحب','السمك.'],en:"I don't like fish.",g:0,w:['في','من','مع'],b:1},
+  {t:['العصير','لذيذ.'],en:'The juice is delicious.',g:1,w:['صعبة','صغيرة','كبيرة']},
+  {t:['أكلتي','المفضلة','البيتزا.'],en:'My favourite food is pizza.',g:2,w:['المدرسة','الحقيبة','القلم'],b:1}],
+ qa:[['ماذا تأكل في الفطور؟','آكل البيض والخبز.','What do you eat for breakfast?'],['ماذا تشرب؟','أشرب الحليب.','What do you drink?'],['ما أكلتك المفضلة؟','أكلتي المفضلة الأرز مع الدجاج.','What is your favourite food?'],['هل تحب السمك؟','لا، لا أحب السمك.','Do you like fish?']]},
+{id:'free',name:'Free time and friends',ar:'وقت الفراغ',
+ words:[['صديق','friend','🧑‍🤝‍🧑'],['ألعب','I play','🕹️'],['كرة القدم','football','⚽'],['السباحة','swimming','🏊'],['القراءة','reading','📖'],['ألعاب الفيديو','video games','🎮'],['الموسيقى','music','🎵'],['أشاهد','I watch','👀'],['التلفاز','TV','📺'],['ممتع','fun','🤩'],['ممل','boring','😴'],['لأن','because','💬'],['في عطلة نهاية الأسبوع','at the weekend','🗓️']],
+ sentences:[
+  {t:['ألعب','كرة القدم','مع','صديقي.'],en:'I play football with my friend.',g:2,w:['في','إلى','على'],b:1},
+  {t:['أحب','السباحة','لأنها','ممتعة.'],en:'I like swimming because it is fun.',g:2,w:['لكن','مع','في'],b:1},
+  {t:['القراءة','مملة.'],en:'Reading is boring.',g:1,w:['ممل','ممتع','صعب'],x:'القراءة ends in ة, so the describing word also ends in ة: مملة.'},
+  {t:['في عطلة نهاية الأسبوع','أشاهد','التلفاز.'],en:'At the weekend I watch TV.',g:1,w:['أشرب','آكل','أنام'],b:1,alt:['أشاهد التلفاز في عطلة نهاية الأسبوع']},
+  {t:['صديقي','اسمه','عمر.'],en:"My friend's name is Omar.",g:1,w:['اسمها','عمري','عندي'],b:1,x:'صديقي is a boy, so we say اسمه (his name).'},
+  {t:['لا','أحب','ألعاب الفيديو','لأنها','مملة.'],en:"I don't like video games because they are boring.",g:3,w:['لكن','مع','في'],b:1}],
+ qa:[['ماذا تفعل في وقت الفراغ؟','ألعب ألعاب الفيديو.','What do you do in your free time?'],['ما هوايتك؟','هوايتي الرسم.','What is your hobby?'],['من صديقك المفضل؟','صديقي المفضل خالد.','Who is your best friend?'],['هل تحب الموسيقى؟ لماذا؟','نعم، أحب الموسيقى لأنها ممتعة.','Do you like music? Why?']]},
+{id:'day',name:'My day',ar:'يومي',
+ words:[['أستيقظ','I wake up','⏰'],['أتناول الفطور','I have breakfast','🍳'],['أذهب','I go','🚶'],['أرجع','I come back','↩️'],['أدرس','I study','📚'],['أكتب الواجب','I do my homework','✏️'],['أنام','I sleep','😴'],['الساعة',"o'clock / the time",'🕖'],['صباحا','in the morning','🌞'],['مساء','in the evening','🌙'],['ثم','then','➡️'],['بعد','after','⏭️']],
+ sentences:[
+  {t:['أستيقظ','الساعة','السادسة','صباحا.'],en:'I wake up at six in the morning.',g:2,w:['المدرسة','الفطور','الواجب'],b:1},
+  {t:['ثم','أتناول','الفطور.'],en:'Then I have breakfast.',g:2,w:['التلفاز','المدرسة','الساعة'],b:1},
+  {t:['أذهب','إلى','المدرسة','الساعة','السابعة.'],en:"I go to school at seven o'clock.",g:1,w:['في','على','عن'],b:1,alt:['الساعة السابعة أذهب إلى المدرسة']},
+  {t:['بعد','المدرسة','أكتب الواجب.'],en:'After school I do my homework.',g:0,w:['لأن','على','عن'],b:1,alt:['أكتب الواجب بعد المدرسة']},
+  {t:['أنام','الساعة','العاشرة','مساء.'],en:'I go to sleep at ten in the evening.',g:2,w:['الفطور','التلفاز','المدرسة'],b:1},
+  {t:['في','المساء','أشاهد','التلفاز','مع','عائلتي.'],en:'In the evening I watch TV with my family.',g:4,w:['في','إلى','على'],b:1,alt:['أشاهد التلفاز مع عائلتي في المساء']}],
+ qa:[['متى تستيقظ؟','أستيقظ الساعة السادسة.','When do you wake up?'],['ماذا تفعل بعد المدرسة؟','أكتب الواجب ثم ألعب.','What do you do after school?'],['متى تنام؟','أنام الساعة العاشرة مساء.','When do you go to sleep?'],['ماذا تفعل في المساء؟','أشاهد التلفاز مع عائلتي.','What do you do in the evening?']]}
+];
+
+/* =================== HELPERS =================== */
+const $=s=>document.querySelector(s);
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const others=(arr,n,ex)=>shuffle(arr.filter(x=>!ex.includes(x))).slice(0,n);
+const ai=t=>`<span class="ai" lang="ar" dir="rtl">${t}</span>`;
+const norm=s=>s.replace(/[.،؟?!,]/g,'').replace(/\s+/g,' ').trim();
+const sTxt=S=>S.t.join(' ');
+const mc=o=>{const opts=shuffle([o.answer,...o.wrong.slice(0,o.n-1)]);return {type:'mc',...o,options:opts,correct:opts.indexOf(o.answer)};};
+const sNote=S=>`${ai(sTxt(S))} means “${S.en}”.${S.x?' '+S.x:''}`;
+
+/* =================== QUESTION TYPES =================== */
+const QT={
+ wAr:(T,n)=>{const W=pick(T.words);return mc({prompt:'What does this word mean?',big:W[0],answer:W[1],wrong:others(T.words,3,[W]).map(w=>w[1]),n,explain:`${ai(W[0])} means “${W[1]}”.`,speak:W[0],key:'wa'+W[0]});},
+ wEn:(T,n)=>{const W=pick(T.words);return mc({prompt:`Which word means “${W[1]}”? <span class="em">${W[2]}</span>`,answer:W[0],wrong:others(T.words,3,[W]).map(w=>w[0]),n,optAr:1,explain:`${ai(W[0])} means “${W[1]}”.`,speak:W[0],key:'we'+W[0]});},
+ sAr:(T,n)=>{const S=pick(T.sentences);return mc({prompt:'What does this sentence mean?',big:sTxt(S),sent:1,answer:S.en,wrong:others(T.sentences,3,[S]).map(s=>s.en),n,long:1,explain:sNote(S),speak:sTxt(S),key:'sa'+S.en});},
+ sEn:(T,n)=>{const S=pick(T.sentences);return mc({prompt:`Which sentence means: “${S.en}”`,answer:sTxt(S),wrong:others(T.sentences,3,[S]).map(sTxt),n,optAr:1,long:1,explain:sNote(S),speak:sTxt(S),key:'se'+S.en});},
+ gap:(T,n)=>{const S=pick(T.sentences),raw=S.t[S.g],word=norm(raw),p=(raw.match(/[.،؟]$/)||[''])[0];
+   const shown=S.t.map((c,i)=>i===S.g?`<span class="gap"></span>${p}`:c).join(' ');
+   return mc({prompt:'Choose the missing word.',sub:`“${S.en}”`,big:shown,sent:1,answer:word,wrong:S.w,n,optAr:1,explain:sNote(S),speak:sTxt(S),key:'g'+S.en});},
+ qa:(T,n)=>{const Q=pick(T.qa);return mc({prompt:'Choose the best answer to this question.',big:Q[0],sent:1,answer:Q[1],wrong:others(T.qa,3,[Q]).map(q=>q[1]),n,optAr:1,long:1,
+   explain:`${ai(Q[0])} means “${Q[2]}” A good answer is ${ai(Q[1])}`,speak:Q[0],key:'qa'+Q[0]});},
+ build:(T)=>{const S=pick(T.sentences.filter(s=>s.b));let tiles;do{tiles=shuffle(S.t.map(norm));}while(tiles.join(' ')===S.t.map(norm).join(' ')&&S.t.length>1);
+   return {type:'build',prompt:`Build the sentence: “${S.en}”`,tiles,answers:[sTxt(S),...(S.alt||[])].map(norm),show:sTxt(S),explain:sNote(S),speak:sTxt(S),key:'b'+S.en};}
+};
+const QT_NAMES={wAr:'Word meaning',wEn:'Find the word',sAr:'Sentence meaning',sEn:'Find the sentence',gap:'Missing word',qa:'Question and answer',build:'Build the sentence'};
+
+/* =================== LEVELS (harder each time) =================== */
+const MIX=[
+ ['wAr','wEn','wAr','wEn','sAr','qa'],
+ ['wAr','wEn','sAr','sEn','gap','qa'],
+ ['wEn','sAr','sEn','gap','qa','build'],
+ ['sAr','sEn','gap','gap','qa','build'],
+ ['sEn','gap','qa','qa','build','build'],
+ ['gap','qa','qa','build','build','sEn']];
+const SKIES=[['#173a55','#3a6c7f'],['#1d3557','#55708f'],['#2a2f5a','#7a6585'],['#33264d','#9a6a73'],['#2b1d3f','#c07a5e'],['#1e1733','#d08a4e']];
+function genFor(li,practice){
+  let ti=li, mixIdx=li;
+  if(!practice&&li>0&&Math.random()<.2){ti=Math.floor(Math.random()*li);mixIdx=Math.min(ti,li-1);} // spiral review of earlier topics
+  const n=li<2?3:4;
+  const ty=pick(MIX[mixIdx]); const q=QT[ty](TOPICS[ti],n); q.topic=TOPICS[ti].name; q.label=QT_NAMES[ty]+(ti!==li?' · review: '+TOPICS[ti].name:''); return q;
+}
+const LEVELS=TOPICS.map((T,i)=>({name:T.name,nmAr:T.ar,focus:[ 'words and simple sentences','words, sentences and missing words','sentences, questions and building','missing words and building sentences','questions and building sentences','full sentences, questions and building'][i],
+  gen:()=>genFor(i,false),enemies:4+i,speed:.85+i*.2,timer:[0,0,25,20,20,18][i],gaps:[[50,80],[60,95],[70,110],[75,120],[80,130],[85,135]][i],hop:[0,0,0,.25,.4,.55][i],sky:SKIES[i]}));
+
+/* =================== STORAGE =================== */
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
+let progress=store.get('rihla2-progress',null)||{passed:[0,0,0,0,0,0],stars:[0,0,0,0,0,0],best:[0,0,0,0,0,0]};
+const save=()=>store.set('rihla2-progress',progress);
+const levelOpen=i=>i===0||progress.stars[i-1]>0;
+const canPlay=i=>levelOpen(i)&&progress.passed[i];
+
+/* =================== AUDIO =================== */
+let AC=null;
+function tone(f,d=.12,type='square',vol=.06,slide=0){
+  try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();
+  o.type=type;o.frequency.value=f;if(slide)o.frequency.exponentialRampToValueAtTime(f*slide,AC.currentTime+d);
+  g.gain.value=vol;g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+d);o.connect(g).connect(AC.destination);o.start();o.stop(AC.currentTime+d);}catch(e){}
+}
+const sfx={jump:()=>tone(420,.14,'square',.04,1.8),coin:()=>{tone(880,.08,'triangle',.07);setTimeout(()=>tone(1320,.1,'triangle',.07),70);},
+  good:()=>{[523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.14,'triangle',.08),i*80));},
+  bad:()=>tone(220,.35,'sawtooth',.05,.5),hit:()=>tone(160,.2,'square',.06,.6),tap:()=>tone(660,.05,'triangle',.05),
+  win:()=>{[523,659,784,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.18,'triangle',.08),i*110));}};
+let arVoice=null;
+function loadVoices(){try{const vs=speechSynthesis.getVoices();arVoice=vs.find(v=>(v.lang||'').toLowerCase().startsWith('ar'))||null;}catch(e){}}
+try{loadVoices();speechSynthesis.onvoiceschanged=loadVoices;}catch(e){}
+function speak(t){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang=arVoice?arVoice.lang:'ar-SA';if(arVoice)u.voice=arVoice;u.rate=.8;speechSynthesis.speak(u);}catch(e){}}
+const canSpeak='speechSynthesis' in window;
+
+/* =================== SCREENS + MAP =================== */
+let screen='menu';
+function show(id){screen=id;['menu','game','practice'].forEach(s=>$('#'+s).hidden=s!==id);window.scrollTo(0,0);}
+function starStr(n){return [0,1,2].map(i=>i<n?'★':'<span class="off">★</span>').join('');}
+function renderPath(){
+  $('#path').innerHTML=LEVELS.map((L,i)=>{
+    const open=levelOpen(i), play=canPlay(i);
+    const pill=!open?`<span class="pill lock">Finish level ${i} first</span>`:!progress.passed[i]?'<span class="pill need">Practice first</span>':progress.stars[i]?`<span class="stars">${starStr(progress.stars[i])}</span>`:'<span class="pill ready">Ready to play</span>';
+    return `<button class="stop" type="button" data-l="${i}" ${open?'':'disabled'}>
+      <span class="num">Level ${i+1}</span><span class="nm">${L.name}</span><span class="nm-ar" lang="ar">${L.nmAr}</span>
+      <span class="fc">${L.focus}</span><span class="meta">${pill}<span class="fc">${L.timer?L.timer+'s timer':'No timer'}</span></span></button>`;}).join('');
+  const next=LEVELS.findIndex((_,i)=>levelOpen(i)&&!progress.stars[i]);
+  const ni=next<0?LEVELS.length-1:next;
+  $('#btnPlay').textContent=canPlay(ni)?`Play level ${ni+1}: ${LEVELS[ni].name}`:`Practise level ${ni+1} first`;
+  $('#btnPlay').onclick=()=>canPlay(ni)?startLevel(ni):openPractice(ni);
+}
+$('#path').addEventListener('click',e=>{const b=e.target.closest('.stop');if(!b||b.disabled)return;const i=+b.dataset.l;canPlay(i)?startLevel(i):openPractice(i);});
+$('#btnPractice').onclick=()=>{const i=LEVELS.findIndex((_,k)=>levelOpen(k)&&!progress.passed[k]);openPractice(i<0?0:i);};
+$('#btnPracBack').onclick=()=>{endCheck();renderPath();show('menu');};
+$('#btnMap').onclick=()=>{stopGame();renderPath();show('menu');};
+$('#btnRestart').onclick=()=>startLevel(G.li);
+$('#tShow').onclick=()=>{$('#tForm').hidden=false;$('#tCode').focus();};
+$('#tGo').onclick=()=>{if($('#tCode').value.trim().toUpperCase()==='UAS'){progress.passed=progress.passed.map(()=>1);progress.stars=progress.stars.map(s=>s||1);save();renderPath();$('#tMsg').textContent='All levels unlocked.';}else $('#tMsg').textContent='That code is not right.';};
+
+/* =================== QUESTION CARD =================== */
+let activeQ=null;
+function renderQ(root,q,{timer=0,practice=false,onAnswer,onContinue,contLabel}){
+  const head=`<div class="q-top"><span class="q-tag ${practice?'practice':''}">${practice?'Practice':'Scrambler challenge'}</span>
+    ${q.speak&&canSpeak?'<button class="hear" type="button">Hear it</button>':''}</div>
+    ${timer?'<div class="timer"><i></i></div>':''}
+    <p class="q-prompt">${q.prompt}</p>${q.sub?`<p class="q-sub">${q.sub}</p>`:''}
+    ${q.big?`<div class="q-big ${q.sent?'sent':''}" lang="ar" dir="rtl">${q.big}</div>`:''}`;
+  let body;
+  if(q.type==='build'){
+    body=`<div class="build-line" id="bLine"></div><div class="build-pool" id="bPool">${q.tiles.map((t,i)=>`<button type="button" class="tile" data-i="${i}" lang="ar">${t}</button>`).join('')}</div>
+      <div class="build-row"><button type="button" class="btn ghost" id="bClear">Clear</button><button type="button" class="btn primary" id="bCheck" disabled>Check</button></div>`;
+  } else {
+    const cls=[q.options.length===3&&!q.long?'three':'',q.optAr?'ar-opts':'',q.long?'long':''].join(' ');
+    body=`<div class="opts ${cls}">${q.options.map((o,i)=>`<button type="button" class="opt" data-i="${i}"><span class="k">${i+1}</span><span class="t" ${q.optAr?'lang="ar" dir="rtl"':''}>${o}</span></button>`).join('')}</div>`;
+  }
+  root.innerHTML=head+body+'<div class="fb" hidden></div>';
+  const tag=root.querySelector('.q-tag'); if(practice) tag.textContent=q.label||'Practice';
+  const hear=root.querySelector('.hear'); if(hear) hear.onclick=()=>speak(q.speak);
+  let done=false, raf=0; const t0=performance.now(); const bar=root.querySelector('.timer i');
+  function tick(now){const left=Math.max(0,1-(now-t0)/(timer*1000));bar.style.transform=`scaleX(${left})`;bar.style.background=left<.3?'var(--coral)':'var(--gold)';
+    if(left<=0){finish(false,true);return;} raf=requestAnimationFrame(tick);}
+  if(timer) raf=requestAnimationFrame(tick);
+  function finish(ok,timeout,chosen){
+    if(done)return; done=true; cancelAnimationFrame(raf);
+    const secsLeft=timer?Math.max(0,timer-(performance.now()-t0)/1000):0;
+    root.querySelectorAll('.opt,.tile,#bClear,#bCheck').forEach(b=>b.disabled=true);
+    if(q.type==='build'){root.querySelector('#bLine').classList.add(ok?'right':'wrong');}
+    else root.querySelectorAll('.opt').forEach((b,j)=>{if(j===q.correct)b.classList.add('right');else if(j===chosen)b.classList.add('wrong');});
+    const fb=root.querySelector('.fb'); fb.hidden=false; fb.className='fb '+(ok?'good':'bad');
+    const h=ok?pick(['Correct!','Well read!','Spot on!','Great work!','ممتاز!']):(timeout?'Time is up.':'Not quite.');
+    let ans='';
+    if(!ok){ans=q.type==='build'?`<p>The sentence is ${ai(q.show)}</p>`:`<p>The answer is ${q.optAr?ai(q.options[q.correct]):'“'+q.options[q.correct]+'”'}.</p>`;}
+    fb.innerHTML=`<h3>${h}</h3>${ans}<p>${q.explain}</p><div class="row"><button type="button" class="btn ${ok?'mint':'primary'} cont">${contLabel||'Continue'}</button></div>`;
+    ok?sfx.good():sfx.bad();
+    const c=fb.querySelector('.cont'); c.onclick=()=>{activeQ=null;onContinue&&onContinue(ok);}; c.focus({preventScroll:true});
+    onAnswer&&onAnswer(ok,secsLeft);
+  }
+  if(q.type==='build'){
+    const line=root.querySelector('#bLine'),pool=root.querySelector('#bPool'),chk=root.querySelector('#bCheck');
+    const sync=()=>{chk.disabled=pool.children.length>0;};
+    pool.addEventListener('click',e=>{const t=e.target.closest('.tile');if(!t||done)return;line.appendChild(t);sfx.tap();sync();});
+    line.addEventListener('click',e=>{const t=e.target.closest('.tile');if(!t||done)return;pool.appendChild(t);sync();});
+    root.querySelector('#bClear').onclick=()=>{[...line.children].forEach(t=>pool.appendChild(t));sync();};
+    chk.onclick=()=>{const s=norm([...line.children].map(t=>t.textContent).join(' '));finish(q.answers.includes(s));};
+    activeQ={answer:()=>{},cont:()=>{const c=root.querySelector('.cont');if(c)c.click();},stop:()=>cancelAnimationFrame(raf)};
+  } else {
+    const btns=[...root.querySelectorAll('.opt')];
+    btns.forEach(b=>b.onclick=()=>{const i=+b.dataset.i;finish(i===q.correct,false,i);});
+    activeQ={answer:i=>{if(i<btns.length&&!done)finish(i===q.correct,false,i);},cont:()=>{const c=root.querySelector('.cont');if(c)c.click();},stop:()=>cancelAnimationFrame(raf)};
+  }
+}
+function showOverlay(html){$('#ovCard').innerHTML=html||'';$('#overlay').hidden=false;}
+function hideOverlay(){$('#overlay').hidden=true;}
+const GLYPHS='ابتثجحخدذرزسشصضطظعغفقكلمنهوي'.split('');
+/* =================== GAME ENGINE =================== */
+const cv=$('#cv'), ctx=cv.getContext('2d'), VW=960, VH=540;
+const DPR=Math.min(2,window.devicePixelRatio||1); cv.width=VW*DPR; cv.height=VH*DPR; ctx.scale(DPR,DPR);
+let G=null;
+const keys={left:0,right:0,jump:0};
+function rng(seed){return()=>{seed=(seed*16807)%2147483647;return(seed-1)/2147483646;};}
+const overlap=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
+
+function buildLevel(li){
+  const L=LEVELS[li], r=rng(4242+li*977), GY=455;
+  const solids=[{x:0,y:GY,w:560,h:400}], plats=[], coins=[], enemies=[];
+  let x=560;
+  while(solids.length<L.enemies+2){
+    x+=L.gaps[0]+r()*(L.gaps[1]-L.gaps[0]);
+    const w=320+r()*240, y=GY-[0,0,35,60][Math.floor(r()*(li<1?2:4))];
+    const s={x,y,w,h:400}; solids.push(s); x+=w;
+    if(r()<.75){const pw=110+r()*60,px=s.x+40+r()*Math.max(10,w-pw-80),py=s.y-115;plats.push({x:px,y:py,w:pw,h:16});
+      for(let k=0;k<3;k++)coins.push({x:px+pw/2-45+k*35,y:py-38,g:pick(GLYPHS),got:0});}
+    else for(let k=0;k<3;k++)coins.push({x:s.x+w/2-45+k*35,y:s.y-70,g:pick(GLYPHS),got:0});
+  }
+  for(let i=1;i<=L.enemies;i++){const s=solids[i];
+    enemies.push({x:s.x+s.w*.55,y:s.y-40,w:42,h:40,minX:s.x+20,maxX:s.x+s.w-62,dir:r()<.5?-1:1,speed:L.speed,alive:1,
+      hop:r()<L.hop,vy:0,base:s.y-40,t:r()*6,glyph:pick(GLYPHS),dying:0});}
+  const last=solids[solids.length-1];
+  return {solids,plats,coins,enemies,gate:{x:last.x+last.w-120,y:last.y-110,w:70,h:110},worldW:last.x+last.w,
+    stars:Array.from({length:70},()=>({x:r()*VW*2,y:r()*260,s:r()*1.6+.4,t:r()*6}))};
+}
+function startLevel(li){
+  stopGame(); hideOverlay();
+  const lv=buildLevel(li);
+  G={li,L:LEVELS[li],...lv,p:{x:60,y:380,w:28,h:44,vx:0,vy:0,on:0,face:1,inv:0,coy:0,buf:0,cpx:60,cpy:380},
+     cam:0,hearts:3,lost:0,score:0,asked:0,right:0,time:0,paused:0,parts:[],toast:{t:'Level '+(li+1)+': '+LEVELS[li].name,sub:LEVELS[li].focus,life:200},gateMsg:0,raf:0,last:0,done:0};
+  $('#gameTitle').innerHTML=`Level ${li+1}: ${G.L.name} <span>· ${G.L.focus}</span>`;
+  show('game'); G.raf=requestAnimationFrame(loop);
+}
+function stopGame(){if(G){cancelAnimationFrame(G.raf);G.done=1;} if(activeQ&&activeQ.stop)activeQ.stop(); activeQ=null;}
+function loop(ts){
+  if(!G||G.done)return;
+  const dt=G.last?Math.min(2.5,(ts-G.last)/16.667):1; G.last=ts;
+  if(!G.paused)update(dt); draw();
+  G.raf=requestAnimationFrame(loop);
+}
+function respawn(){const p=G.p;p.x=p.cpx;p.y=p.cpy-60;p.vx=0;p.vy=0;p.inv=90;}
+function loseHeart(){G.hearts--;G.lost++;sfx.hit();if(G.hearts<=0){gameOver();return 1;}return 0;}
+
+function update(dt){
+  const p=G.p; G.time+=dt;
+  if(keys.left){p.vx=Math.max(p.vx-.9*dt,-4.8);p.face=-1;}
+  else if(keys.right){p.vx=Math.min(p.vx+.9*dt,4.8);p.face=1;}
+  else p.vx*=Math.pow(.72,dt);
+  if(p.buf>0)p.buf-=dt; if(p.coy>0)p.coy-=dt; if(p.inv>0)p.inv-=dt;
+  if(p.buf>0&&(p.on||p.coy>0)){p.vy=-12.8;p.on=0;p.coy=0;p.buf=0;sfx.jump();}
+  if(!keys.jump&&p.vy<-5)p.vy=-5;
+  p.vy=Math.min(p.vy+.62*dt,15);
+  p.x+=p.vx*dt;
+  for(const s of G.solids)if(overlap(p,s)){if(p.vx>0)p.x=s.x-p.w;else if(p.vx<0)p.x=s.x+s.w;p.vx=0;}
+  p.x=Math.max(0,Math.min(p.x,G.worldW-p.w));
+  const prevB=p.y+p.h; p.y+=p.vy*dt; const wasOn=p.on; p.on=0;
+  for(const s of G.solids)if(overlap(p,s)){if(p.vy>0){p.y=s.y-p.h;p.vy=0;p.on=1;p.cpx=Math.max(s.x+20,Math.min(p.x,s.x+60));p.cpy=s.y;}else if(p.vy<0){p.y=s.y+s.h;p.vy=0;}}
+  if(p.vy>=0)for(const pl of G.plats)if(prevB<=pl.y+1&&p.x+p.w>pl.x&&p.x<pl.x+pl.w&&p.y+p.h>=pl.y){p.y=pl.y-p.h;p.vy=0;p.on=1;}
+  if(wasOn&&!p.on&&p.vy>=0)p.coy=7;
+  if(p.y>VH+80){G.toast={t:'Careful!',sub:'You fell into the sand.',life:90};if(!loseHeart())respawn();return;}
+  // coins
+  for(const c of G.coins)if(!c.got&&Math.abs(p.x+p.w/2-c.x)<24&&Math.abs(p.y+p.h/2-c.y)<30){c.got=1;G.score+=10;sfx.coin();burst(c.x,c.y,'#ffd35c',8);}
+  // enemies
+  for(const e of G.enemies){
+    if(e.dying){e.dying-=dt;continue;} if(!e.alive)continue;
+    e.x+=e.dir*e.speed*dt; if(e.x<e.minX){e.x=e.minX;e.dir=1;} if(e.x>e.maxX){e.x=e.maxX;e.dir=-1;}
+    if(e.hop){e.vy+=.5*dt;e.y+=e.vy*dt;if(e.y>=e.base){e.y=e.base;e.vy=Math.random()<.02*dt?-9:0;}}
+    e.t+=dt*.05;
+    if(p.inv<=0&&overlap({x:p.x+4,y:p.y+4,w:p.w-8,h:p.h-6},{x:e.x+6,y:e.y+8,w:e.w-12,h:e.h-8}))challenge(e);
+  }
+  // gate
+  if(overlap(p,G.gate)){
+    const left=G.enemies.filter(e=>e.alive).length;
+    if(!left)levelComplete(); else if(G.gateMsg<=0){G.toast={t:'The gate is locked',sub:`Defeat ${left} more Scrambler${left>1?'s':''} to open it.`,life:120};G.gateMsg=140;}
+  }
+  if(G.gateMsg>0)G.gateMsg-=dt;
+  G.cam=Math.max(0,Math.min(p.x-VW*.38,G.worldW-VW));
+  for(const pt of G.parts){pt.x+=pt.vx*dt;pt.y+=pt.vy*dt;pt.vy+=.25*dt;pt.life-=dt;}
+  G.parts=G.parts.filter(pt=>pt.life>0);
+  if(G.toast)G.toast.life-=dt;
+}
+function burst(x,y,c,n){for(let i=0;i<n;i++)G.parts.push({x,y,vx:(Math.random()-.5)*7,vy:-Math.random()*6-1,life:30+Math.random()*25,c});}
+
+function challenge(e){
+  G.paused=1; keys.left=keys.right=keys.jump=0; padReset();
+  const q=G.L.gen(); G.asked++;
+  showOverlay();
+  renderQ($('#ovCard'),q,{timer:G.L.timer*(q.type==='build'?1.6:1),
+    onAnswer:(ok,secs)=>{if(ok){G.right++;G.score+=100+Math.round(secs*5);}},
+    onContinue:(ok)=>{
+      hideOverlay(); G.paused=0; G.last=0;
+      if(ok){e.alive=0;e.dying=30;burst(e.x+20,e.y+20,'#ff6f59',18);burst(e.x+20,e.y+20,'#ffd35c',10);
+        const left=G.enemies.filter(x=>x.alive).length;
+        G.toast=left?{t:'Scrambler defeated!',sub:`${left} left`,life:90}:{t:'All Scramblers defeated!',sub:'Run to the gate.',life:150};
+        G.p.inv=30;}
+      else{if(loseHeart())return; const p=G.p; p.vx=(p.x<e.x?-1:1)*7; p.vy=-8; p.inv=110;}
+    }});
+}
+function levelComplete(){
+  G.paused=1; sfx.win(); const li=G.li, stars=G.lost===0?3:G.lost===1?2:1;
+  progress.stars[li]=Math.max(progress.stars[li]||0,stars); progress.unlocked=Math.max(progress.unlocked,Math.min(LEVELS.length,li+2)); store.set('rihla-progress',progress);
+  const next=li+1<LEVELS.length;
+  showOverlay(`<div class="end card" style="box-shadow:none;padding:0;width:100%">
+    <span class="q-tag practice">Gate opened</span><h2>${G.L.name} complete!</h2>
+    <div class="big-stars">${starStr(stars)}</div>
+    <p>${G.right} of ${G.asked} questions right · score ${G.score}</p>
+    ${next?`<p>Next: <b style="color:var(--ink)">${LEVELS[li+1].name}</b>, ${LEVELS[li+1].focus.toLowerCase()}.</p>`:'<p>You finished the whole journey. رائع!</p>'}
+    <div class="cta">${next?'<button class="btn primary" id="eNext" type="button">Next level</button>':''}
+    <button class="btn" id="eAgain" type="button">Play again</button><button class="btn ghost" id="eMap" type="button">Map</button></div></div>`);
+  wireEnd(li,next);
+}
+function gameOver(){
+  G.paused=1; const li=G.li;
+  const topic={0:'sounds',1:'short',2:'long',3:'forms',4:'words'}[li];
+  showOverlay(`<div class="end card" style="box-shadow:none;padding:0;width:100%">
+    <span class="q-tag">Out of hearts</span><h2>The Scramblers won this time</h2>
+    <p>${G.right} of ${G.asked} questions right. A few minutes in the practice room will help.</p>
+    <div class="cta"><button class="btn primary" id="eAgain" type="button">Try again</button>
+    <button class="btn mint" id="ePrac" type="button">Practise ${TOPICS.find(t=>t.id===topic).label.toLowerCase()}</button>
+    <button class="btn ghost" id="eMap" type="button">Map</button></div></div>`);
+  wireEnd(li,0,topic);
+}
+function wireEnd(li,next,topic){
+  const n=$('#eNext');if(n){n.onclick=()=>startLevel(li+1);n.focus();}
+  $('#eAgain').onclick=()=>startLevel(li); if(!n)$('#eAgain').focus();
+  $('#eMap').onclick=()=>{hideOverlay();stopGame();renderPath();show('menu');};
+  const pr=$('#ePrac');if(pr)pr.onclick=()=>{hideOverlay();stopGame();openPractice(topic);};
+}
+
+/* =================== DRAWING =================== */
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function dunes(off,base,amp,col,par){ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(0,VH);
+  for(let x=0;x<=VW;x+=16){const wx=x+G.cam*par;ctx.lineTo(x,base-Math.sin(wx*.004+off)*amp-Math.sin(wx*.011+off*2)*amp*.35);}ctx.lineTo(VW,VH);ctx.fill();}
+function draw(){
+  const L=G.L, cam=G.cam;
+  const g=ctx.createLinearGradient(0,0,0,VH);g.addColorStop(0,L.sky[0]);g.addColorStop(1,L.sky[1]);ctx.fillStyle=g;ctx.fillRect(0,0,VW,VH);
+  for(const s of G.stars){const x=((s.x-cam*.05)%(VW*2)+VW*2)%(VW*2);if(x>VW)continue;ctx.globalAlpha=.4+.4*Math.sin(G.time*.03+s.t);ctx.fillStyle='#fff';ctx.fillRect(x,s.y,s.s,s.s);}
+  ctx.globalAlpha=1;
+  ctx.fillStyle='#fbe9c2';ctx.beginPath();ctx.arc(780-cam*.03,90,34,0,7);ctx.fill();ctx.fillStyle=L.sky[0];ctx.beginPath();ctx.arc(766-cam*.03,82,30,0,7);ctx.fill();
+  dunes(1,360,30,'rgba(20,40,60,.55)',.15); dunes(3,410,26,'rgba(120,80,50,.45)',.35);
+  ctx.save();ctx.translate(-cam,0);
+  // ground
+  for(const s of G.solids){if(s.x+s.w<cam-10||s.x>cam+VW+10)continue;
+    ctx.fillStyle='#d9a95c';ctx.fillRect(s.x,s.y,s.w,VH-s.y+10);
+    ctx.fillStyle='#e8bf72';rr(s.x,s.y,s.w,16,6);ctx.fill();
+    ctx.fillStyle='#b9873f';for(let x=s.x+14;x<s.x+s.w-8;x+=34){ctx.fillRect(x,s.y+30+((x*7)%23),4,4);ctx.fillRect(x+15,s.y+58+((x*3)%19),3,3);}
+  }
+  // platforms
+  for(const pl of G.plats){ctx.fillStyle='#7a4f2e';rr(pl.x,pl.y,pl.w,pl.h,6);ctx.fill();ctx.fillStyle='#a8713f';rr(pl.x,pl.y,pl.w,6,4);ctx.fill();}
+  // gate
+  drawGate();
+  // coins (letter tiles)
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  for(const c of G.coins){if(c.got)continue;const y=c.y+Math.sin(G.time*.08+c.x)*4;
+    ctx.fillStyle='#ffd35c';rr(c.x-13,y-14,26,28,7);ctx.fill();ctx.fillStyle='#8a5a12';ctx.font='700 18px "Noto Naskh Arabic", serif';ctx.fillText(c.g,c.x,y+1);}
+  for(const e of G.enemies)drawEnemy(e);
+  drawPlayer(G.p);
+  for(const pt of G.parts){ctx.globalAlpha=Math.min(1,pt.life/20);ctx.fillStyle=pt.c;ctx.fillRect(pt.x-3,pt.y-3,6,6);}ctx.globalAlpha=1;
+  ctx.restore();
+  drawHUD();
+}
+function drawGate(){
+  const gt=G.gate, open=!G.enemies.some(e=>e.alive);
+  ctx.fillStyle='#5b3a24';ctx.fillRect(gt.x-8,gt.y,16,gt.h);ctx.fillRect(gt.x+gt.w-8,gt.y,16,gt.h);
+  ctx.strokeStyle='#5b3a24';ctx.lineWidth=14;ctx.beginPath();ctx.arc(gt.x+gt.w/2,gt.y+6,gt.w/2,Math.PI,0);ctx.stroke();
+  if(open){const gg=ctx.createRadialGradient(gt.x+gt.w/2,gt.y+60,5,gt.x+gt.w/2,gt.y+60,70);gg.addColorStop(0,'rgba(127,224,184,.9)');gg.addColorStop(1,'rgba(127,224,184,0)');ctx.fillStyle=gg;ctx.fillRect(gt.x-40,gt.y-40,gt.w+80,gt.h+40);}
+  else{ctx.fillStyle='#3a2416';for(let i=0;i<4;i++)ctx.fillRect(gt.x+10+i*15,gt.y+6,5,gt.h-6);}
+  // palm
+  const px=gt.x+gt.w+40, py=gt.y+gt.h;ctx.strokeStyle='#6b4a2a';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(px,py);ctx.quadraticCurveTo(px+10,py-70,px-4,py-130);ctx.stroke();
+  ctx.fillStyle='#2f7a5a';for(let a=0;a<6;a++){ctx.save();ctx.translate(px-4,py-130);ctx.rotate(a*1.05+.3);ctx.beginPath();ctx.ellipse(28,0,30,8,0,0,7);ctx.fill();ctx.restore();}
+  ctx.font='700 16px "Baloo 2", sans-serif';ctx.fillStyle=open?'#7fe0b8':'#f6efe2';ctx.textAlign='center';
+  ctx.fillText(open?'OPEN':'LOCKED',gt.x+gt.w/2,gt.y-36);
+}
+function drawEnemy(e){
+  if(!e.alive&&!e.dying)return;
+  const x=e.x,y=e.y,w=e.w,sc=e.dying?e.dying/30:1, wob=Math.sin(G.time*.15+e.t*10)*2.5;
+  ctx.save();ctx.translate(x+w/2,y+e.h);ctx.scale(sc,sc);
+  ctx.fillStyle='rgba(0,0,0,.2)';ctx.beginPath();ctx.ellipse(0,0,20,5,0,0,7);ctx.fill();
+  ctx.fillStyle='#ff6f59';ctx.beginPath();ctx.moveTo(-21,0);ctx.quadraticCurveTo(-24-wob,-40,0,-42+wob);ctx.quadraticCurveTo(24+wob,-40,21,0);
+  for(let i=0;i<4;i++){ctx.quadraticCurveTo(15-i*11,-7,10-i*11,0);}ctx.closePath();ctx.fill();
+  const look=Math.sign(G.p.x-x)*2.5;
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(-8,-26,6.5,0,7);ctx.arc(8,-26,6.5,0,7);ctx.fill();
+  ctx.fillStyle='#1b1b2a';ctx.beginPath();ctx.arc(-8+look,-25,3,0,7);ctx.arc(8+look,-25,3,0,7);ctx.fill();
+  ctx.strokeStyle='#8c2f22';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(-14,-36);ctx.lineTo(-3,-32);ctx.moveTo(14,-36);ctx.lineTo(3,-32);ctx.stroke();
+  ctx.restore();
+  if(e.alive){ctx.save();ctx.translate(x+w/2,y-18+Math.sin(G.time*.1+e.t*8)*3);ctx.rotate(Math.sin(G.time*.05+e.t)*.5);
+    ctx.font='700 22px "Noto Naskh Arabic", serif';ctx.fillStyle='#ffd35c';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(e.glyph,-7,0);
+    ctx.font='800 18px "Baloo 2", sans-serif';ctx.fillText('?',10,-2);ctx.restore();}
+}
+function drawPlayer(p){
+  if(p.inv>0&&Math.floor(p.inv/5)%2)return;
+  const walk=p.on?Math.sin(G.time*.35)*Math.min(Math.abs(p.vx),4.8)*1.6:4;
+  ctx.save();ctx.translate(p.x+p.w/2,p.y);ctx.scale(p.face,1);
+  ctx.fillStyle='rgba(0,0,0,.2)';ctx.beginPath();ctx.ellipse(0,p.h,13,4,0,0,7);ctx.fill();
+  ctx.fillStyle='#3b2f45';ctx.fillRect(-8+walk*.5,32,6,12);ctx.fillRect(2-walk*.5,32,6,12);
+  ctx.fillStyle='#6b4a2a';rr(-15,15,8,16,3);ctx.fill();
+  ctx.fillStyle='#2f9e8f';rr(-11,14,22,21,6);ctx.fill();
+  ctx.fillStyle='#c98e5f';ctx.beginPath();ctx.arc(0,9,10,0,7);ctx.fill();
+  ctx.fillStyle='#f6efe2';ctx.beginPath();ctx.arc(0,5,11,Math.PI,0);ctx.fill();ctx.fillRect(-11,4,22,3);
+  ctx.fillStyle='#ff6f59';ctx.fillRect(-10,15,20,4);ctx.beginPath();ctx.moveTo(-9,16);ctx.lineTo(-17-Math.abs(p.vx),14+Math.sin(G.time*.3)*2);ctx.lineTo(-9,20);ctx.fill();
+  ctx.fillStyle='#1b1b2a';ctx.beginPath();ctx.arc(5,10,1.8,0,7);ctx.fill();
+  ctx.restore();
+}
+function heart(x,y,full){ctx.fillStyle=full?'#ff6f59':'rgba(255,255,255,.18)';ctx.beginPath();ctx.moveTo(x,y+6);ctx.bezierCurveTo(x,y,x-10,y,x-10,y+6);ctx.bezierCurveTo(x-10,y+12,x,y+16,x,y+20);ctx.bezierCurveTo(x,y+16,x+10,y+12,x+10,y+6);ctx.bezierCurveTo(x+10,y,x,y,x,y+6);ctx.fill();}
+function drawHUD(){
+  ctx.fillStyle='rgba(8,20,30,.55)';rr(14,12,VW-28,42,14);ctx.fill();
+  for(let i=0;i<3;i++)heart(40+i*28,22,i<G.hearts);
+  ctx.textBaseline='middle';ctx.font='700 18px "Baloo 2", sans-serif';ctx.fillStyle='#f6efe2';
+  const left=G.enemies.filter(e=>e.alive).length;
+  ctx.textAlign='center';ctx.fillText(`Scramblers left: ${left} / ${G.enemies.length}`,VW/2,34);
+  ctx.textAlign='right';ctx.fillStyle='#ffd35c';ctx.fillText(`Score ${G.score}`,VW-34,34);
+  if(G.toast&&G.toast.life>0){const a=Math.min(1,G.toast.life/30);ctx.globalAlpha=a;ctx.fillStyle='rgba(8,20,30,.7)';rr(VW/2-230,74,460,G.toast.sub?66:44,14);ctx.fill();
+    ctx.textAlign='center';ctx.fillStyle='#f6efe2';ctx.font='800 22px "Baloo 2", sans-serif';ctx.fillText(G.toast.t,VW/2,96);
+    if(G.toast.sub){ctx.font='600 16px "Baloo 2", sans-serif';ctx.fillStyle='#a9c0c8';ctx.fillText(G.toast.sub,VW/2,122);}ctx.globalAlpha=1;}
+}
+
+/* =================== INPUT =================== */
+const KMAP={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',ArrowUp:'jump',KeyW:'jump',Space:'jump'};
+addEventListener('keydown',e=>{
+  if(!$('#overlay').hidden||screen==='practice'){
+    if(activeQ){const n=parseInt(e.key,10);if(n>=1&&n<=4){activeQ.answer(n-1);e.preventDefault();}}
+    return;
+  }
+  if(screen!=='game'||!G)return; const k=KMAP[e.code]; if(!k)return; e.preventDefault();
+  if(k==='jump'&&!keys.jump)G.p.buf=8; keys[k]=1;
+});
+addEventListener('keyup',e=>{const k=KMAP[e.code];if(k)keys[k]=0;});
+document.querySelectorAll('.pad button').forEach(b=>{const k=b.dataset.k;
+  const on=e=>{e.preventDefault();if(k==='jump'&&!keys.jump&&G)G.p.buf=8;keys[k]=1;b.classList.add('on');};
+  const off=e=>{e.preventDefault();keys[k]=0;b.classList.remove('on');};
+  b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off);b.addEventListener('pointerleave',off);});
+function padReset(){document.querySelectorAll('.pad button').forEach(b=>b.classList.remove('on'));}
+addEventListener('blur',()=>{keys.left=keys.right=keys.jump=0;padReset();});
+
+/* =================== LEVEL END (overrides) =================== */
+function levelComplete(){
+  G.paused=1; sfx.win(); const li=G.li, stars=G.lost===0?3:G.lost===1?2:1;
+  progress.stars[li]=Math.max(progress.stars[li]||0,stars); save();
+  const hasNext=li+1<LEVELS.length, nextReady=hasNext&&canPlay(li+1);
+  showOverlay(`<div class="end card" style="box-shadow:none;padding:0;width:100%">
+    <span class="q-tag practice">Gate opened</span><h2>${G.L.name} complete!</h2>
+    <div class="big-stars">${starStr(stars)}</div>
+    <p>${G.right} of ${G.asked} questions right · score ${G.score}</p>
+    ${hasNext?`<p>Next topic: <b style="color:var(--ink)">${LEVELS[li+1].name}</b> ${ai(LEVELS[li+1].nmAr)}${nextReady?'':'. Learn it in the practice room first.'}</p>`:'<p>You finished the whole journey. أحسنت!</p>'}
+    <div class="cta">${hasNext?(nextReady?'<button class="btn primary" id="eNext" type="button">Play next level</button>':'<button class="btn mint" id="ePrac" type="button">Practise the next topic</button>'):''}
+    <button class="btn" id="eAgain" type="button">Play again</button><button class="btn ghost" id="eMap" type="button">Map</button></div></div>`);
+  wireEnd2(li,li+1);
+}
+function gameOver(){
+  G.paused=1; const li=G.li;
+  showOverlay(`<div class="end card" style="box-shadow:none;padding:0;width:100%">
+    <span class="q-tag">Out of hearts</span><h2>The Scramblers won this time</h2>
+    <p>${G.right} of ${G.asked} questions right. Go back over the words and sentences, then try again.</p>
+    <div class="cta"><button class="btn primary" id="eAgain" type="button">Try again</button>
+    <button class="btn mint" id="ePrac" type="button">Review ${TOPICS[li].name.toLowerCase()}</button>
+    <button class="btn ghost" id="eMap" type="button">Map</button></div></div>`);
+  wireEnd2(li,li);
+}
+function wireEnd2(li,pracTi){
+  const n=$('#eNext'); if(n){n.onclick=()=>startLevel(li+1);n.focus();}
+  $('#eAgain').onclick=()=>startLevel(li);
+  $('#eMap').onclick=()=>{hideOverlay();stopGame();renderPath();show('menu');};
+  const pr=$('#ePrac'); if(pr){pr.onclick=()=>{hideOverlay();stopGame();openPractice(pracTi);}; if(!n)pr.focus();}
+}
+
+/* =================== PRACTICE ROOM =================== */
+const CHECK_N=10, PASS=8;
+const P={ti:0,qs:0,right:0,res:[],lastKey:''};
+function renderChips(){
+  $('#chips').innerHTML=TOPICS.map((T,i)=>`<button type="button" class="chip" data-t="${i}" aria-pressed="${i===P.ti}">${i+1}. ${T.name}${progress.passed[i]?'<span class="ok">✓</span>':''}</button>`).join('');
+}
+$('#chips').addEventListener('click',e=>{const c=e.target.closest('.chip');if(c){endCheck();openPractice(+c.dataset.t);}});
+function openPractice(ti){stopGame();P.ti=ti;renderChips();renderLearn();show('practice');}
+function renderLearn(){
+  const T=TOPICS[P.ti], i=P.ti;
+  $('#check').hidden=true; $('#learn').hidden=false;
+  const status=progress.passed[i]?`<b>Check passed ✓</b> best score ${progress.best[i]}/${CHECK_N}`:`Pass the check to unlock level ${i+1}`;
+  const hearHint=canSpeak?'Tap any card to hear it.':'';
+  $('#learn').innerHTML=`
+    <div class="topic-head"><div><h3>${i+1}. ${T.name}</h3><div class="ar-t" lang="ar">${T.ar}</div></div><div class="status">${status}</div></div>
+    <div class="section-label">Words · ${T.words.length} ${hearHint?'· '+hearHint:''}</div>
+    <div class="words">${T.words.map(w=>`<button type="button" class="wcard" data-say="${w[0]}"><span class="e">${w[2]}</span><span class="a" lang="ar">${w[0]}</span><span class="n">${w[1]}</span></button>`).join('')}</div>
+    <div class="section-label">Sentences</div>
+    <div class="slist">${T.sentences.map(s=>`<button type="button" class="srow" data-say="${sTxt(s)}"><span class="en">${s.en}</span><span class="ar" lang="ar">${sTxt(s)}</span></button>`).join('')}</div>
+    <div class="section-label">Questions and answers · say them out loud</div>
+    <div class="slist">${T.qa.map(q=>`<button type="button" class="srow" data-say="${q[0]} ${q[1]}"><span class="en">${q[2]}</span><span class="qa"><span class="q" lang="ar" dir="rtl">${q[0]}</span><span class="a" lang="ar" dir="rtl">${q[1]}</span></span></button>`).join('')}</div>
+    <div class="check-box"><p><b>Practice check</b> · ${CHECK_N} questions, get ${PASS} right to unlock level ${i+1}. No timer, no hearts.</p>
+      <div class="cta" style="margin:0"><button class="btn mint" id="startCheck" type="button">Start the check</button>
+      ${canPlay(i)?`<button class="btn primary" id="playLvl" type="button">Play level ${i+1}</button>`:''}</div></div>`;
+  $('#learn').querySelectorAll('[data-say]').forEach(b=>b.onclick=()=>speak(b.dataset.say));
+  $('#startCheck').onclick=startCheck;
+  const pl=$('#playLvl'); if(pl) pl.onclick=()=>startLevel(i);
+}
+function startCheck(){P.qs=0;P.right=0;P.res=[];$('#learn').hidden=true;$('#check').hidden=false;window.scrollTo(0,0);nextCheckQ();}
+function endCheck(){if(activeQ&&activeQ.stop)activeQ.stop();activeQ=null;}
+function drawProg(){
+  $('#cProg').textContent=`${TOPICS[P.ti].name} · question ${Math.min(P.qs+1,CHECK_N)} of ${CHECK_N}`;
+  $('#cDots').innerHTML=Array.from({length:CHECK_N},(_,k)=>`<i class="${P.res[k]===1?'g':P.res[k]===0?'b':''}"></i>`).join('');
+}
+function nextCheckQ(){
+  if(P.qs>=CHECK_N){checkResult();return;}
+  drawProg();
+  let q,tries=0; do{q=genFor(P.ti,true);tries++;}while(q.key===P.lastKey&&tries<8); P.lastKey=q.key;
+  renderQ($('#cCard'),q,{practice:true,contLabel:P.qs+1>=CHECK_N?'See my result':'Next question',
+    onAnswer:ok=>{P.res[P.qs]=ok?1:0;if(ok)P.right++;drawProg();},
+    onContinue:()=>{P.qs++;nextCheckQ();}});
+}
+function checkResult(){
+  const i=P.ti, pass=P.right>=PASS;
+  if(pass){progress.passed[i]=1;}
+  progress.best[i]=Math.max(progress.best[i]||0,P.right); save(); renderChips();
+  $('#cProg').textContent=`${TOPICS[i].name} · check finished`;
+  const play=canPlay(i);
+  $('#cCard').innerHTML=`<div class="end" style="display:grid;gap:12px">
+    <span class="q-tag ${pass?'practice':''}">${pass?'Check passed':'Not yet'}</span>
+    <h2>${P.right} / ${CHECK_N}</h2>
+    <p>${pass?(play?`Level ${i+1} is unlocked. Time to beat the Scramblers.`:`Well done. Finish level ${i} to play this level.`):`You need ${PASS} to unlock level ${i+1}. Look over the words and sentences again, then have another go.`}</p>
+    <div class="cta">${pass&&play?`<button class="btn primary" id="rPlay" type="button">Play level ${i+1}</button>`:''}
+      <button class="btn ${pass?'':'mint'}" id="rAgain" type="button">${pass?'Practise again':'Try the check again'}</button>
+      <button class="btn ghost" id="rLearn" type="button">Back to the words</button></div></div>`;
+  if(pass)sfx.win();
+  const rp=$('#rPlay'); if(rp){rp.onclick=()=>startLevel(i);rp.focus();}
+  $('#rAgain').onclick=startCheck; $('#rLearn').onclick=()=>{renderLearn();window.scrollTo(0,0);};
+}
+addEventListener('keydown',e=>{if(e.key==='Enter'&&activeQ&&document.activeElement&&!document.activeElement.classList.contains('cont')&&!document.activeElement.classList.contains('tile')){activeQ.cont();}});
+
+/* =================== BOOT =================== */
+renderPath();
+})();
+</script>
+
+</body></html>
